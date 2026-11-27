@@ -49,7 +49,7 @@ svg.icon { display: inline-block; flex: none; }
   font-variant-numeric: tabular-nums;
 }
 .brand { font-family: var(--serif); font-weight: bold; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-bright); white-space: nowrap; display: flex; align-items: center; flex: none; }
-/* The map menu (ui/mobile.js, after earthciv): a gold-framed selector in the brand that names this map and opens the
+/* The map menu (ui/mobile.js): a gold-framed selector in the brand that names this map and opens the
    others. */
 .map-picker {
   -webkit-appearance: none; appearance: none; margin: 0; height: 28px; padding: 0 26px 0 10px; min-width: 0; max-width: 100%;
@@ -494,7 +494,7 @@ body.panel-open #lens-area { right: calc(394px + var(--dock-right, 0px)); }
 
 /* ---------- phones ---------- */
 @media (max-width: 700px) {
-  /* Two rows that always fit, instead of one strip to scroll sideways (after earthciv): the map menu, Search, Locate
+  /* Two rows that always fit, instead of one strip to scroll sideways: the map menu, Search, Locate
      and a menu (the extension buttons, Share, Help, Almanac) on top, the national yields below (ui/mobile.js). */
   :root { --topbar-h: 78px; }
   #topbar { height: var(--topbar-h); padding: 0 6px; gap: 0 5px; flex-wrap: wrap; align-content: flex-start; overflow: visible; }
@@ -737,7 +737,7 @@ body.defi-round #search-input { opacity: .45; }
 @keyframes locate-turn { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .locate-btn.busy .icon { animation: none; opacity: .5; } }
 
-/* ---------- tap card (ui/tapCard.js, after earthciv): a touch screen's hover tooltip ---------- */
+/* ---------- tap card (ui/tapCard.js): a touch screen's hover tooltip ---------- */
 .tap-card {
   position: fixed; z-index: 22; left: 8px; right: 8px; margin: 0 auto; width: fit-content; max-width: min(440px, calc(100vw - 16px));
   padding: 9px 40px 10px 12px; font-size: 13.5px; line-height: 1.5; color: var(--ink);

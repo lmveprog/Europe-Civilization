@@ -1,7 +1,7 @@
 // 2D camera over the map (km). Screen = (world − centre) × scale + viewport/2.
 // Smooth motion: zoomBy() eases toward a target scale around an anchor, flyTo() animates centre + scale along
 // a van Wijk & Nuij "optimal" path (zoom out, travel, zoom in), `pan` (px/s, set from held keys) moves the
-// view and glideFrom() lets it coast after a flick (from earthciv, MIT); step(dt) advances all of it. `fitScale` is
+// view and glideFrom() lets it coast after a flick; step(dt) advances all of it. `fitScale` is
 // the scale of the last fit() (the home view), handy for encoding the zoom in a URL as a multiple of it.
 
 // Momentum after a flick: the view keeps the finger's speed and slows down exponentially (time constant GLIDE_TAU s,

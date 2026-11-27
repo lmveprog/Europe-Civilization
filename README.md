@@ -44,8 +44,7 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
   the 28,000 towns and villages of Bosnia and Herzegovina, Montenegro and Kosovo are named on the map as you zoom in,
   from the largest towns down to the smallest village. Search finds any of them, by local name too.
 - **On a phone.** The top bar folds into two rows and a menu, a tap on a hex shows what a mouse would read there,
-  and the map glides on after a flick (all three after [EarthCiv](https://earthciv.org/)). The menu at the top left
-  switches between this map, the France map and the other community maps.
+  and the map glides on after a flick. The menu at the top left switches between this map and the France map.
 - **Find yourself.** The crosshair beside the search box asks your browser for your position, which stays on your
   device, and opens the card of the municipality you are in.
 - **Play the daily challenge.** Five places a day, the same for everyone, thirty seconds each: click where you think
@@ -171,7 +170,6 @@ vulnerability, see [SECURITY.md](SECURITY.md).
 ## Credits and licence
 
 Code under the MIT licence (see [LICENSE](LICENSE)): the original engine and art are © Andrej Karpathy (usaciv), the
-Europe adaptation © the europeciv contributors. The phone top bar, the tap card and the flick glide are adapted from
-[EarthCiv](https://github.com/earthciv/earthciv) (MIT, same copyright notice). The data keep their own licences (above). UK data: contains public
+Europe adaptation © the europeciv contributors. The data keep their own licences (above). UK data: contains public
 sector information licensed under the Open Government Licence v3.0; UK boundaries contain OS data © Crown copyright and
 database right, and Land & Property Services (Northern Ireland) data.

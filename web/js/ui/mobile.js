@@ -1,4 +1,4 @@
-// Phones and touch screens, after earthciv (MIT). The top bar on phones (css/style.css, max-width 700px) is two fixed
+// Phones and touch screens. The top bar on phones (css/style.css, max-width 700px) is two fixed
 // rows instead of one sideways-scrolling strip: the map menu, a search button, Locate and a menu (the extension
 // buttons, Share, Help, Almanac) on top, the national yields below. This wires what CSS cannot: the menu button and
 // closing the menu, the search field's close button (the field opens over the first row while it has focus), the
@@ -7,11 +7,10 @@ import { icon } from "./icon.js";
 
 const PHONE = "(max-width: 700px)";
 const MENU_SVG = `<svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`;
-// The maps of the map menu: this one and its sibling, then the community maps EarthCiv lists.
+// The maps of the map menu: France and Europe.
 const MAPS = [
   { id: "franceciv", label: "France", url: "https://mathieuastruc.com/franceciv/" },
   { id: "europeciv", label: "Europe", url: "https://mathieuastruc.com/europeciv/" },
-  { id: "earthciv", label: "More maps (EarthCiv)", url: "https://earthciv.org/" },
 ];
 const HERE = "europeciv";
 

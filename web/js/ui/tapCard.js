@@ -1,7 +1,7 @@
 // Touch screens have no hover, so a tap on the map shows what the hover tooltip would (a tile's terrain, region, lens
 // value and resources, or a map site) in a card just above whatever covers the bottom of the map (the lens dock and
 // legend, or a bottom sheet), out from under the finger. main.js decides when a tap reads a tile instead of opening
-// a region; the card can still open it, or the city, in one more tap. Adapted from earthciv (MIT).
+// a region; the card can still open it, or the city, in one more tap.
 import { esc } from "../format.js";
 import { icon } from "./icon.js";
 

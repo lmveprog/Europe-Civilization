@@ -1175,7 +1175,7 @@ async function main() {
   let lastTap = null; // {t, x, y}
   let pendingTap = 0;
 
-  // The finger's recent positions while it drags, to measure the flick that lets the map glide on (from earthciv).
+  // The finger's recent positions while it drags, to measure the flick that lets the map glide on.
   const TOUCH_SLOP = 10;
   const FLICK_MS = 100;
   let flick = []; // [t ms, x, y]
