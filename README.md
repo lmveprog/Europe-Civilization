@@ -2,7 +2,7 @@
 
 **Europe as a Civilization-style strategy map, built entirely from open data.**
 
-**[Play it at mathieuastruc.com/europeciv](https://mathieuastruc.com/europeciv/)** · by [Mathieu Astruc](https://mathieuastruc.com/) · [Announcement on X](https://x.com/matheusnpu/status/2126048432636809707)
+**[Play it at mathieuastruc.com/europeciv](https://mathieuastruc.com/europeciv/)** · by [Mathieu Astruc](https://mathieuastruc.com/) · [Announcement on X](https://x.com/mathieuas/status/2126048432636809707)
 
 ![The map of Europe: hex terrain, cities with their yield banners, resources and wonders](docs/images/europe.jpg)
 
