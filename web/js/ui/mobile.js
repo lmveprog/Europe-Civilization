@@ -20,6 +20,7 @@ export function initMobile({ app } = {}) {
   const bar = document.getElementById("topbar");
   if (!bar) return;
   mapMenu(bar);
+  maker(bar);
 
   // --- menu ------------------------------------------------------------------------------------------------------
   const menuBtn = document.getElementById("btn-menu");
@@ -33,7 +34,7 @@ export function initMobile({ app } = {}) {
       menuBtn.setAttribute("aria-expanded", String(open));
     };
     menuBtn.addEventListener("click", () => setOpen(!bar.classList.contains("menu-open")));
-    menu.addEventListener("click", (e) => { if (e.target.closest("button")) setOpen(false); });
+    menu.addEventListener("click", (e) => { if (e.target.closest("button, a")) setOpen(false); });
     document.addEventListener("pointerdown", (e) => {
       if (bar.classList.contains("menu-open") && !e.target.closest(".tb-buttons, #btn-menu")) setOpen(false);
     }, true);
@@ -63,6 +64,25 @@ export function initMobile({ app } = {}) {
   // The top bar changes height between one row and two: the map's visible area follows.
   phone.addEventListener?.("change", () => dispatchEvent(new Event("resize")));
   return app;
+}
+
+// The author, beside the map's name (and in the phone menu, where the bar has no room): a link to his site.
+const AUTHOR = { name: "Mathieu Astruc", url: "https://mathieuastruc.com/" };
+function maker(bar) {
+  const brand = bar.querySelector(".brand");
+  if (!brand || bar.querySelector(".map-maker")) return;
+  const link = (cls, html) => {
+    const a = document.createElement("a");
+    a.className = cls;
+    a.href = AUTHOR.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.title = "The author: mathieuastruc.com";
+    a.innerHTML = html;
+    return a;
+  };
+  brand.after(link("map-maker", `<span>by</span> <b>${AUTHOR.name}</b>`));
+  bar.querySelector(".tb-buttons")?.append(link("btn menu-only", `<span class="lbl">Mathieu Astruc, author</span>`));
 }
 
 // The map menu: a <select> in the brand that names this map and opens the others.

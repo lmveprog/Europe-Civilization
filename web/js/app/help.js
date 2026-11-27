@@ -41,7 +41,8 @@ export function initHelp() {
     <p class="help-foot">Every number traces back to public data: open the <b>Almanac</b> for sources.
       The link in the address bar always reopens this exact view.
       Source code: <a href="https://github.com/lmveprog/Europe-Civilization" target="_blank" rel="noopener">github.com/lmveprog/Europe-Civilization</a>, or <a href="europeciv-source.zip" download>europeciv-source.zip</a> (MIT; run it with uv, see its README).
-      Based on <a href="https://karpathy.ai/usaciv/" target="_blank" rel="noopener">usaciv</a> by Andrej Karpathy, MIT licence.</p>`;
+      A map by <a href="https://mathieuastruc.com/" target="_blank" rel="noopener">Mathieu Astruc</a>, based on
+      <a href="https://karpathy.ai/usaciv/" target="_blank" rel="noopener">usaciv</a> by Andrej Karpathy, MIT licence.</p>`;
 
   const close = () => {
     if (modal.hidden) return;

@@ -2,7 +2,7 @@
 
 **Europe as a Civilization-style strategy map, built entirely from open data.**
 
-**[Play it at mathieuastruc.com/europeciv](https://mathieuastruc.com/europeciv/)** · [Announcement on X](https://x.com/matheusnpu/status/2126047439274516570)
+**[Play it at mathieuastruc.com/europeciv](https://mathieuastruc.com/europeciv/)** · by [Mathieu Astruc](https://mathieuastruc.com/) · [Announcement on X](https://x.com/matheusnpu/status/2126048432636809707)
 
 ![The map of Europe: hex terrain, cities with their yield banners, resources and wonders](docs/images/europe.jpg)
 
@@ -170,6 +170,6 @@ vulnerability, see [SECURITY.md](SECURITY.md).
 ## Credits and licence
 
 Code under the MIT licence (see [LICENSE](LICENSE)): the original engine and art are © Andrej Karpathy (usaciv), the
-Europe adaptation © the europeciv contributors. The data keep their own licences (above). UK data: contains public
+Europe adaptation © [Mathieu Astruc](https://mathieuastruc.com/) and the europeciv contributors. The data keep their own licences (above). UK data: contains public
 sector information licensed under the Open Government Licence v3.0; UK boundaries contain OS data © Crown copyright and
 database right, and Land & Property Services (Northern Ireland) data.

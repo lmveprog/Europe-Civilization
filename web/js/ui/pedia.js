@@ -44,7 +44,7 @@ export function initPedia(data) {
       / or ⌘K to search places, cities and countries · L to cycle lenses · R to show or hide resources · ? for all shortcuts · Esc to close.</p>
       <p>The address bar always holds a link to what you're looking at (lens, selection and view); use <i>Share</i> to copy it
       or to download a picture.</p>
-      <p class="muted">Based on <a href="https://karpathy.ai/usaciv/" target="_blank" rel="noopener">usaciv</a> by Andrej Karpathy, MIT licence.</p>`,
+      <p class="muted">A map by <a href="https://mathieuastruc.com/" target="_blank" rel="noopener">Mathieu Astruc</a>, based on <a href="https://karpathy.ai/usaciv/" target="_blank" rel="noopener">usaciv</a> by Andrej Karpathy, MIT licence.</p>`,
     Yields: () => `
       ${h2("y-production", null, "Yields")}
       <p>Civilization's yields mapped onto real measures. Job-based yields count the jobs in an industry where the work is

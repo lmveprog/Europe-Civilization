@@ -61,6 +61,12 @@ svg.icon { display: inline-block; flex: none; }
 }
 .map-picker:hover { border-color: var(--gold-bright); }
 .brand { position: relative; }
+/* The author (ui/mobile.js): beside the map's name on wide screens, in the menu on phones. */
+.map-maker { flex: none; margin-left: -6px; font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap; }
+.map-maker b { font-family: var(--serif); font-weight: 600; color: var(--gold-bright); }
+.map-maker:hover b, .map-maker:focus-visible b { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+#topbar .menu-only { display: none; }
+@media (max-width: 1180px) { .map-maker { display: none; } }
 .brand-sizer { position: absolute; visibility: hidden; white-space: nowrap; pointer-events: none; font: inherit; letter-spacing: inherit; text-transform: inherit; }
 .map-picker option { color: #ead7a8; background: #172437; text-transform: none; letter-spacing: normal; font-weight: normal; }
 /* Phone-only top-bar controls (see "phones" below): the search field's close button and the menu button. */
@@ -486,7 +492,7 @@ body.panel-open #lens-area { right: calc(394px + var(--dock-right, 0px)); }
 }
 /* The yields row gives way first when the bar is short of room (topbar.js marks it .clipped). Phones scroll the
    whole bar instead. */
-@media (max-width: 1000px) and (min-width: 701px) {
+@media (max-width: 1560px) and (min-width: 701px) {
   .yields { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .yields::-webkit-scrollbar { display: none; }
   .yields.clipped { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); }
@@ -539,6 +545,8 @@ body.panel-open #lens-area { right: calc(394px + var(--dock-right, 0px)); }
   #topbar.menu-open .tb-buttons .btn:active, #topbar.menu-open .tb-buttons .btn:focus-visible { background: rgba(201,164,92,.15); }
   #topbar.menu-open .tb-buttons .btn[aria-pressed="true"] { background: linear-gradient(180deg, #5a4a24, #3a2f15); border-color: var(--gold-bright); }
   #topbar.menu-open .tb-buttons .btn .lbl, #topbar.menu-open .tb-buttons .lbl-menu { display: inline; }
+  #topbar.menu-open .tb-buttons .menu-only { display: flex; align-items: center; text-decoration: none; color: var(--ink-dim);
+    border-top: 1px solid rgba(201,164,92,.2); border-radius: 0; margin-top: 4px; }
   #topbar.menu-open .tb-buttons .btn svg.icon { width: 20px; height: 20px; }
   #topbar.menu-open .tb-menu-btn { background: linear-gradient(180deg, #5a4a24, #3a2f15); }
 
