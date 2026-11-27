@@ -38,6 +38,7 @@ const METRICS = [
   { id: "age", d: "people", label: "Median age", fmt: (v) => `${dec(v, 1)} yrs`, higher: null, v: (s) => s.median_age, note: "Half the population is older, half younger." },
   { id: "youth", d: "people", label: "Children", fmt: (v) => pct(v, 1), higher: null, wb: "youth", v: (s) => s.youth, note: "Share of residents under 15." },
   { id: "density", d: "people", label: "Density", fmt: (v) => `${int(v)} /km²`, higher: null, wb: "density", v: (s) => s.density, note: "People per km² of land." },
+  { id: "municipalities", d: "people", label: "Municipalities", fmt: int, higher: null, v: (s) => s.municipalities, note: "Local administrative units as Eurostat lists them (LAU 2021): communes, Gemeinden, comuni, gminy… The United Kingdom's are its wards. Bosnia and Herzegovina, Montenegro and Kosovo have none in the list." },
   { id: "cities", d: "people", label: "Cities on the map", fmt: int, higher: null, v: (s, x) => x.cities.get(x.i) || 0, note: "Functional urban areas (or towns of 50,000+) drawn as cities." },
   // Society
   { id: "degrees", d: "society", label: "University degrees", fmt: (v) => pct(v, 1), higher: true, v: (s) => s.bachelors, note: "Share of 25-64 year-olds with tertiary education." },
@@ -85,7 +86,7 @@ const LENS_FMT = {
   gold: ["usd", "€"], production: ["float", "jobs"], science: ["float", "jobs"], culture: ["float", "jobs"], food: ["float", "jobs"],
   gdp_pps: ["float", "PPS"], income: ["float", "PPS"], employment: ["pct", ""], unemployment: ["pct", ""],
   science_share: ["pct", ""], industry_share: ["pct", ""], population: ["float", "people"], growth: ["change", ""],
-  life: ["years", ""], age: ["years", ""], youth: ["pct", ""], density: ["int", "people / km²"], cities: ["float", "cities"],
+  life: ["years", ""], age: ["years", ""], youth: ["pct", ""], density: ["int", "people / km²"], municipalities: ["float", "municipalities"], cities: ["float", "cities"],
   degrees: ["pct", ""], poverty: ["pct", ""], seniors: ["pct", ""], area: ["float", "km²"], forest: ["pct", ""],
   farmland: ["pct", ""], forest_height: ["metres", ""], builtup: ["pct", ""], power: ["float", "MW"], power_pc: ["float", "W per person"],
   nuclear: ["float", "MW"], renewable: ["float", "MW"], hydro: ["float", "MW"], coal: ["float", "MW"],

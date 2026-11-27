@@ -638,11 +638,19 @@ async function main() {
   });
   // A year of a timeline lens (lens.frames): the lens with that year's values, from its lazily loaded file.
   const frameLenses = new Map();
+  // A timeline file holds each year's values for every hex, or, with `cells`, only for the hexes listed there.
+  function frameValues(d, k) {
+    const v = d?.values?.[k];
+    if (!v || !d.cells) return v;
+    const out = new Array(w.raw.owner.length).fill(null);
+    d.cells.forEach((c, j) => { out[c] = v[j]; });
+    return out;
+  }
   function showLensFrame(id, k) {
     const base = lensById.get(id);
     if (!base?.frames) return;
     loadData(base.frames.file).then((d) => {
-      const values = d?.values?.[k];
+      const values = frameValues(d, k);
       if (!values || state.lens?.id !== id) return;
       const key = `${id}:${k}`;
       if (!frameLenses.has(key)) {

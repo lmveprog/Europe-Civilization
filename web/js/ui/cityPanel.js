@@ -31,11 +31,13 @@ export function openCityPanel(city, ctx) {
     sub: `${esc(city.full || "")}${states ? `<div class="chips">${states}</div>` : ""}`,
     headExtra: popLine(city, growth),
     sections: [
-      { title: "Yields", html: `<div class="yield-grid">${yieldGrid(nation, city.yields)}</div>` },
-      { title: "Living standards", html: amenities(city, n) + gdpRow(city) },
-      { title: "Districts · where people work", html: industries(city, nation) },
+      { title: "Yields of the urban area", html: `<div class="yield-grid">${yieldGrid(nation, city.yields)}</div>` },
+      { title: "Living standards in the urban area", html: amenities(city, n) + gdpRow(city) },
+      { title: "Districts · where the area works", html: industries(city, nation) },
     ],
-    foot: `Source: ${esc(nation.vintage)}${nation.gdp_vintage ? `; GDP: ${esc(nation.gdp_vintage)}` : ""}.
+    foot: `This panel describes the functional urban area (the core city and its commuting zone), except its first line:
+      ${city.centre ? `the municipality of ${esc(city.centre)}, whose card the search opens` : "the core city"}.
+      Source: ${esc(nation.vintage)}${nation.gdp_vintage ? `; GDP: ${esc(nation.gdp_vintage)}` : ""}.
       Green ×N = this industry's share of jobs is N× its share across Europe.`,
     onClose: ctx.onClose,
     onPedia: ctx.onPedia,

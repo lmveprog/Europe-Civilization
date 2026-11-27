@@ -227,9 +227,12 @@ def build() -> None:
         print("    resources.json not built yet: energy left null")
     local = {n["code"]: n["name"] for n in load_interim("gisco")["nuts"] if n["level"] == 0}  # Latin-script local name
     area: dict = {}
+    units: dict = {}  # local administrative units (LAU 2021; the UK's wards), GeoNames towns left out
     for u in places["rows"]:
         if u[4]:
             area[u[2]] = area.get(u[2], 0.0) + u[4]
+        if not str(u[0]).startswith("GN_"):
+            units[u[2]] = units.get(u[2], 0) + 1
     states = []
     for i, code in enumerate(world["states"]):
         name, capital, region = COUNTRIES[code]
@@ -251,6 +254,7 @@ def build() -> None:
             "growth_years": years,
             "pop_series": p["series"] or None,
             "land_km2": round(area[code]) if area.get(code) else None,
+            "municipalities": units.get(code),
             "density": round(econ["population"] / area[code], 1) if econ.get("population") and area.get(code) else None,
             # GDP per inhabitant in purchasing power standards (euros at EU-average prices): comparable across countries
             "gdp_pps_per_capita": s.latest("gdp3", "PPS_EU27_2020_HAB", code)[1],

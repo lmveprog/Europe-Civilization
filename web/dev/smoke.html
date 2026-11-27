@@ -152,6 +152,22 @@
       app.selectCity(null); app.selectState(null);
     });
 
+    await step("timeline lenses: first and last year", async () => {
+      const doc = win.document;
+      for (const l of (app.data.lenses?.lenses || []).filter((x) => x.frames)) {
+        app.setLens(l.id); await sleep(300);
+        for (const k of [0, l.frames.years.length - 1]) {
+          const r = doc.querySelector(".lg-range");
+          if (!r) { errors.push(`${l.id}: no year slider`); break; }
+          r.value = String(k); r.dispatchEvent(new win.Event("input", { bubbles: true })); await sleep(1200);
+          const y = doc.querySelector(".lg-year")?.textContent || "";
+          if (!y || y.startsWith("-")) errors.push(`lens ${l.id} shows an empty or negative year: ${y}`);
+          if (app.state.lens?.frames?.frame !== k) errors.push(`${l.id}: frame ${k} not shown`);
+        }
+      }
+      app.setLens(null);
+    });
+
     await step("locate me (simulated positions)", async () => {
       const doc = win.document;
       if (!doc.getElementById("btn-locate")) errors.push("no Locate me button");

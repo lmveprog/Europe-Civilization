@@ -162,7 +162,8 @@ summary. Today citizens, districts, infrastructure, resources and wonders have o
 | placenames/top.json, placenames/t*.json | placenames | 1.0 MB + 203 tiles of 2-160 kB | Places layer, when zoomed in |
 | citizens.json | citizens | 1.0 MB | on demand (City View) |
 | districts.json | districts | 0.9 MB | on demand (City View, banner badges, advisors) |
-| timeline.json | lenses | 3.7 MB | on demand (the "Density since 1975" lens's slider) |
+| timeline.json | lenses | 1.2 MB | on demand (the "Density since 1975" lens's slider) |
+| history.json | lenses | 2.0 MB | on demand (the "Population since 4000 BC" lens's slider) |
 | projection.json | projection | 1 kB | on demand (Locate me) |
 | defi.json | challenge | 390 kB | never: read by `server/api.py` only |
 
@@ -525,12 +526,15 @@ map's Places layer reads the lighter `placenames/` files built from it (below).
   `region`: NUTS 3 code. `x`, `y`: the unit's point in map units (integers, 400 m), where the Places layer writes its
   name. Belgian units of Brussels and Wallonia carry their French name (GISCO publishes the Dutch one).
 
-## timeline.json (lazy)
+## timeline.json, history.json (lazy)
 
 The frames of a timeline lens (`lens.frames` in lenses.json: `{"file": "timeline", "years": [...], "frame": k}`):
-`{"lens": "density_history", "years": [1975, 1980, …, 2020], "values": [[…], …]}`, one array of `n` hex values per
-year (people per km² of land, from GHS-POP; null off the map's countries). The lens itself carries the last year's
-values; the legend's slider loads this file and swaps in another year's array, on the same colour domain.
+`{"lens": "density_history", "years": [1975, 1980, …, 2020], "cells": [hex indices], "values": [[…], …]}`, one array
+per year with a value for each hex listed in `cells` (the hexes of the map's countries), in that order; every other
+hex has no value. The lens itself carries the last year's values; the legend's slider loads the file and swaps in
+another year's array, on the same colour domain. timeline.json: people per km² of land from GHS-POP, 1975-2020.
+history.json (`"lens": "density_deep"`): the same from HYDE 3.2.1 at 19 dates from 4000 BC to 2017; a negative year is
+BC, which the slider writes "4000 BC".
 
 ## projection.json (lazy)
 

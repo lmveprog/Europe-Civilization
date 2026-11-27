@@ -25,9 +25,9 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
 - **Visit 734 cities.** Eurostat's functional urban areas (a core city and its commuting zone; the UK's from the 2020
   edition), plus towns of 50,000+ where the Urban Audit has none. Each has its yields (Food, Production, Gold, Science, Culture), a city view with its
   districts (its real industrial specialisation) and its citizens (age, education, origins, commuting).
-- **Rank the countries.** The Rankings screen orders the 38 countries in 35 measures across seven domains (yields,
+- **Rank the countries.** The Rankings screen orders the 38 countries in 36 measures across seven domains (yields,
   economy, people, society, land, energy, heritage) and 734 cities in 11 more, and can colour the map by any of them.
-- **Switch lenses.** 24 map overlays: density, growth, median age, life expectancy, GDP per person, household income,
+- **Switch lenses.** 25 map overlays: density, growth, median age, life expectancy, GDP per person, household income,
   poverty, unemployment, university degrees, forest, farmland, vineyards, olive groves, temperature, warming,
   rainfall and more, including forest height from spaceborne LiDAR (ETH Zurich's canopy height map, learned from
   NASA's GEDI measurements).
@@ -35,6 +35,9 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
   every five years from 1975 to 2020 (the European Commission's Global Human Settlement Layer), on one colour scale.
   Madrid's region grows by about 70% while inland Spain, the Alentejo, eastern Germany, the Baltics and Bulgaria
   lose people.
+- **Go back to 4000 BC.** The "Population since 4000 BC" lens runs the same slider over 19 dates from HYDE 3.2.1
+  (Utrecht University): 1.4 million people on today's map in 4000 BC, 30 million at the start of our era, 75 million
+  in 1300 and 52 million in 1400 after the Black Death, 152 million in 1800. Estimates, rougher the further back.
 - **Read the council of advisors.** Economy, prosperity, energy, people, knowledge, culture and land dashboards, and an
   explorer that charts any column of the countries, cities and 1,447 regions.
 - **Read every name.** The 98,000 local administrative units (communes, Gemeinden, comuni…), the UK's 8,500 wards and
@@ -122,6 +125,7 @@ file, from Statistics Iceland.
 | World Heritage sites | UNESCO open data | CC BY-SA 4.0 |
 | Airports | Eurostat passenger statistics, OurAirports | CC BY 4.0, public domain |
 | Towns and place names | GeoNames | CC BY 4.0 |
+| Population at 19 dates, 4000 BC-2017 | HYDE 3.2.1 (Utrecht University, PBL), via DANS | CC0 1.0 |
 | Population every five years, 1975-2020 | GHS-POP R2023A, Global Human Settlement Layer (European Commission, JRC) | CC BY 4.0 |
 | Population of Iceland's municipalities | Statistics Iceland | CC BY 4.0 |
 | Population and age of Bosnia and Herzegovina and Kosovo | World Bank, World Development Indicators | CC BY 4.0 |

@@ -16,8 +16,8 @@ from ..core.geo import SCALE, MapProjection
 from ..core.store import load_interim, write_web
 from .yields import Stats
 
-REQUIRES = ["_world", "_places", "eurostat", "canopy_eth", "ghsl_pop"]
-PRODUCES = ["lenses.json", "_region_values", "timeline.json"]
+REQUIRES = ["_world", "_places", "eurostat", "canopy_eth", "ghsl_pop", "hyde"]
+PRODUCES = ["lenses.json", "_region_values", "timeline.json", "history.json"]
 
 GROUPS = [
     {"id": "people", "name": "People"},
@@ -287,6 +287,7 @@ def build() -> None:
                        "values": values, "domain": [0, dom[1]]})
 
     lenses += density_history_lens(world, grid, proj, land_km2, lenses[0]["domain"])
+    lenses += deep_history_lens(world, grid, proj, land_km2, lenses[0]["domain"])
     lenses += climate_lenses(world, grid)
     lenses += forest_height_lens(world, grid)
     write_web("lenses.json", {"vintage": f"Eurostat {s.pop_year}, GISCO LAU 2021, land cover 2018", "groups": GROUPS,
@@ -344,7 +345,9 @@ def density_history_lens(world: dict, grid: HexGrid, proj, land_km2: list, domai
               for y in epochs]
     totals = {y: round(sum(people[y])) for y in epochs}
     print(f"    density timeline: people on the map's hexes by epoch {totals}")
-    write_web("timeline.json", {"lens": "density_history", "years": epochs, "values": frames})
+    cells = [i for i in range(grid.size) if land_km2[i]]
+    write_web("timeline.json", {"lens": "density_history", "years": epochs, "cells": cells,
+                                "values": [[f[i] for i in cells] for f in frames]})
     return [{
         "id": "density_history", "group": "people", "name": f"Density since {epochs[0]}", "icon": "l-people",
         "unit": "people / km²", "format": "int", "scale": "log",
@@ -358,6 +361,83 @@ def density_history_lens(world: dict, grid: HexGrid, proj, land_km2: list, domai
         "quarter, Latvia a quarter and Bulgaria a fifth. Same colours for every year, those of the Density lens.",
         "frames": {"file": "timeline", "years": epochs, "frame": len(epochs) - 1},
         "values": frames[-1], "domain": domain,
+    }]
+
+
+def deep_history_lens(world: dict, grid: HexGrid, proj, land_km2: list, domain) -> list[dict]:
+    """Density at dates from 4000 BC to 2017 from HYDE 3.2.1 (hyde): each 5-arc-minute cell goes to the hex under its
+    centre (a coastal cell in a sea hex to the nearest land hex); the hex's people ÷ its land area. history.json holds
+    every date; the colours run from 0.1 person per km² to the top of the Density lens's scale, the same for every
+    date. Empty if the source has not been processed."""
+    from array import array
+
+    from ..core.paths import INTERIM
+    from .world import FOREIGN
+
+    try:
+        h = load_interim("hyde")
+    except FileNotFoundError:
+        print("    hyde not processed: no deep history lens")
+        return []
+    years, cell = h["years"], h["cell_deg"]
+    raw = array("f")
+    raw.frombytes((INTERIM / h["raster"]).read_bytes())
+    owner = world["owner"]
+    people = {y: [0.0] * grid.size for y in years}
+    where: dict[tuple, int] = {}  # (row, col) of the global grid → hex, or -1
+    for g in h["grids"]:
+        y = g["year"]
+        acc = people[y]
+        for win in g["windows"]:
+            ncol = win["c1"] - win["c0"]
+            base = g["offset"] + win["offset"]
+            for r in range(win["r0"], win["r1"]):
+                row = base + (r - win["r0"]) * ncol
+                for c in range(win["c0"], win["c1"]):
+                    v = raw[row + c - win["c0"]]
+                    if v <= 0:
+                        continue
+                    k = where.get((r, c))
+                    if k is None:
+                        lon, lat = h["west"] + (c + 0.5) * cell, h["north"] - (r + 0.5) * cell
+                        x, yy = proj(lon, lat)
+                        k = grid.cell_at(x, yy)
+                        if k >= 0 and owner[k] < 0:
+                            if owner[k] == FOREIGN:
+                                k = -1
+                            else:
+                                near = [(math.dist((x, yy), grid.center(*grid.col_row(j))), j)
+                                        for j in grid.neighbours(k) if owner[j] >= 0]
+                                k = min(near)[1] if near else -1
+                        where[(r, c)] = k
+                    if k >= 0:
+                        acc[k] += v
+    def short(v):  # three significant figures or so: the file has 19 dates of every hex
+        return round(v, 3) if v < 1 else round(v, 2) if v < 10 else round(v, 1) if v < 100 else round(v)
+
+    frames = [[short(people[y][i] / land_km2[i]) if land_km2[i] else None for i in range(grid.size)] for y in years]
+    totals = {y: round(sum(people[y]) / 1e6, 1) for y in years}
+    print(f"    deep history: millions of people on the map by date {totals}")
+    cells = [i for i in range(grid.size) if land_km2[i]]
+    write_web("history.json", {"lens": "density_deep", "years": years, "cells": cells,
+                               "values": [[f[i] for i in cells] for f in frames]})
+    era = lambda y: f"{-y} BC" if y < 0 else str(y)  # noqa: E731
+    return [{
+        "id": "density_deep", "group": "people", "name": f"Population since {era(years[0])}", "icon": "l-people",
+        "unit": "people / km²", "format": "int", "scale": "log",
+        "ramp": ["#1b1035", "#4b2377", "#9a3b8a", "#e0645e", "#f9b24a", "#fff3a8"], "higher_is": "neutral",
+        "source": "hyde",
+        "note": "Estimates: before censuses, a country's population is reconstructed by historians and spread here "
+        "over the land that could feed it. The further back, the rougher.",
+        "description": f"People per km² of land at {len(years)} dates from {era(years[0])} to {years[-1]}: drag the "
+        "slider or press Play. From HYDE 3.2.1 (Utrecht University and PBL), which spreads historical population "
+        "estimates for each country over its farmland, grazing land and towns on a 5-arc-minute grid. The map's "
+        f"countries hold about {totals[years[0]]:g} million people in {era(years[0])}, {totals[0]:g} million at the "
+        f"start of our era, {totals[1300]:g} million in 1300 and {totals[1400]:g} million in 1400, after the Black "
+        f"Death, {totals[1800]:g} million in 1800 and {totals[years[-1]]:g} million in {years[-1]}. Colours from 0.1 "
+        "person per km² to the top of the Density lens's scale, the same for every date.",
+        "frames": {"file": "history", "years": years, "frame": len(years) - 1},
+        "values": frames[-1], "domain": [0.1, domain[1]],
     }]
 
 

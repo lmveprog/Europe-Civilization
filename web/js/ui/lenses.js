@@ -335,13 +335,14 @@ export function initLensDock(opts) {
     const b = legend.querySelector(".lg-play");
     if (b) { b.textContent = "Play"; b.setAttribute("aria-pressed", "false"); }
   };
+  const yearLabel = (y) => (y < 0 ? `${-y} BC` : String(y)); // negative years are BC
   function timeRow(l) {
     const { years, frame } = l.frames;
     const k = frame ?? years.length - 1;
     return `<div class="lg-time">
         <button class="lg-play" type="button" aria-pressed="false">Play</button>
         <input class="lg-range" type="range" min="0" max="${years.length - 1}" step="1" value="${k}" aria-label="Year">
-        <span class="lg-year">${years[k]}</span></div>`;
+        <span class="lg-year">${yearLabel(years[k])}</span></div>`;
   }
   function wireTime(l) {
     if (!l.frames) return stopPlay();
@@ -365,7 +366,7 @@ export function initLensDock(opts) {
     const range = legend.querySelector(".lg-range"), year = legend.querySelector(".lg-year");
     const k = l.frames.frame;
     if (range && +range.value !== k) range.value = String(k);
-    if (year) year.textContent = l.frames.years[k];
+    if (year) year.textContent = yearLabel(l.frames.years[k]);
     drawHist();
   }
 
