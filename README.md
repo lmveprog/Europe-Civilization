@@ -25,10 +25,10 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
 - **Visit 734 cities.** Eurostat's functional urban areas (a core city and its commuting zone; the UK's from the 2020
   edition), plus towns of 50,000+ where the Urban Audit has none. Each has its yields (Food, Production, Gold, Science, Culture), a city view with its
   districts (its real industrial specialisation) and its citizens (age, education, origins, commuting).
-- **Rank the countries.** The Rankings screen orders the 38 countries in 36 measures across seven domains (yields,
+- **Rank the countries.** The Rankings screen orders the 38 countries in 39 measures across seven domains (yields,
   economy, people, society, land, energy, heritage) and 734 cities in 11 more, and can colour the map by any of them.
-- **Switch lenses.** 25 map overlays: density, growth, median age, life expectancy, GDP per person, household income,
-  poverty, unemployment, university degrees, forest, farmland, vineyards, olive groves, temperature, warming,
+- **Switch lenses.** 28 map overlays: density, growth, median age, life expectancy, people born abroad, GDP per
+  person, household income, poverty, unemployment, research spending, tourist nights, university degrees, forest, farmland, vineyards, olive groves, temperature, warming,
   rainfall and more, including forest height from spaceborne LiDAR (ETH Zurich's canopy height map, learned from
   NASA's GEDI measurements).
 - **Watch fifty years go by.** The "Density since 1975" lens has a year slider and a Play button: the population
@@ -43,6 +43,9 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
 - **Read every name.** The 98,000 local administrative units (communes, Gemeinden, comuni…), the UK's 8,500 wards and
   the 28,000 towns and villages of Bosnia and Herzegovina, Montenegro and Kosovo are named on the map as you zoom in,
   from the largest towns down to the smallest village. Search finds any of them, by local name too.
+- **On a phone.** The top bar folds into two rows and a menu, a tap on a hex shows what a mouse would read there,
+  and the map glides on after a flick (all three after [EarthCiv](https://earthciv.org/)). The menu at the top left
+  switches between this map, the France map and the other community maps.
 - **Find yourself.** The crosshair beside the search box asks your browser for your position, which stays on your
   device, and opens the card of the municipality you are in.
 - **Play the daily challenge.** Five places a day, the same for everyone, thirty seconds each: click where you think
@@ -168,6 +171,7 @@ vulnerability, see [SECURITY.md](SECURITY.md).
 ## Credits and licence
 
 Code under the MIT licence (see [LICENSE](LICENSE)): the original engine and art are © Andrej Karpathy (usaciv), the
-Europe adaptation © the europeciv contributors. The data keep their own licences (above). UK data: contains public
+Europe adaptation © the europeciv contributors. The phone top bar, the tap card and the flick glide are adapted from
+[EarthCiv](https://github.com/earthciv/earthciv) (MIT, same copyright notice). The data keep their own licences (above). UK data: contains public
 sector information licensed under the Open Government Licence v3.0; UK boundaries contain OS data © Crown copyright and
 database right, and Land & Property Services (Northern Ireland) data.

@@ -31,7 +31,9 @@ from pathlib import Path
 from .core.paths import INTERIM, WEB_DATA
 
 LENS_NULL_WARN = 0.05  # share of the map countries' cells with a null lens value
-LENS_PARTIAL = {"forest_height"}  # lenses of what only part of the land has (forests)
+# Lenses of what only part of the land has (forests), or that Eurostat does not publish everywhere: the 2021 census,
+# tourism and R&D tables leave out the United Kingdom, and the census some Western Balkan countries.
+LENS_PARTIAL = {"forest_height", "born_abroad", "tourism", "research"}
 
 REQUIRED = ["world.json", "cities.json", "states.json", "nation.json", "lenses.json", "sources.json"]
 OPTIONAL = ["resources.json", "counties.json"]
@@ -813,6 +815,16 @@ def _load(r: Report, web_dir: Path, name: str, required: bool):
         return None
 
 
+def inline_lens_values(r: Report, web_dir: Path, doc) -> None:
+    """A lens's values live in lenses/<id>.json (its `file`): put them back on the lens for the checks."""
+    if not isinstance(doc, dict):
+        return
+    for lens in doc.get("lenses", []):
+        if isinstance(lens, dict) and "values" not in lens and lens.get("file"):
+            part = _load(r, web_dir, f"{lens['file']}.json", True)
+            lens["values"] = part.get("values") if isinstance(part, dict) else None
+
+
 LEVELS = ("PASS", "NOTE", "WARN", "FAIL")
 
 
@@ -870,6 +882,7 @@ def run(web_dir: Path = WEB_DATA, interim_dir: Path = INTERIM, quiet: bool = Fal
     r.section("contracts (docs/DATA_CONTRACTS.md v2)")
     docs = {name: _load(r, web_dir, name, True) for name in REQUIRED}
     docs.update({name: _load(r, web_dir, name, False) for name in OPTIONAL})
+    inline_lens_values(r, web_dir, docs.get("lenses.json"))
     ctx = check_world(r, docs["world.json"]) if docs["world.json"] is not None else None
     source_ids = check_sources(r, docs["sources.json"]) if docs["sources.json"] is not None else None
     yield_keys = check_nation(r, docs["nation.json"]) if docs["nation.json"] is not None else YIELD_KEYS

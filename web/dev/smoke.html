@@ -113,7 +113,7 @@
 
     const lenses = app.data.lenses?.lenses || [];
     await step(`the ${lenses.length} lenses`, async () => {
-      for (const l of lenses) { app.setLens(l.id); await frames(2); }
+      for (const l of lenses) { await app.lensValues?.(l.id); app.setLens(l.id); await frames(2); }
       app.setLens(null);
     });
 
@@ -155,7 +155,7 @@
     await step("timeline lenses: first and last year", async () => {
       const doc = win.document;
       for (const l of (app.data.lenses?.lenses || []).filter((x) => x.frames)) {
-        app.setLens(l.id); await sleep(300);
+        await app.lensValues?.(l.id); app.setLens(l.id); await sleep(300);
         for (const k of [0, l.frames.years.length - 1]) {
           const r = doc.querySelector(".lg-range");
           if (!r) { errors.push(`${l.id}: no year slider`); break; }
@@ -253,7 +253,7 @@
         app.setMode("advisor", { id }); await sleep(quick ? 500 : 900); scan(`advisor ${id}`);
       }
       app.setMode(null); await sleep(300);
-      for (const l of lenses) { app.setLens(l.id); await frames(1); scan(`lens ${l.id}`); }
+      for (const l of lenses) { await app.lensValues?.(l.id); app.setLens(l.id); await frames(1); scan(`lens ${l.id}`); }
       app.setLens(null);
       app.setMode("challenge"); await sleep(900); scan("daily challenge");
       app.setMode(null); await sleep(200);

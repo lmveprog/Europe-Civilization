@@ -14,6 +14,8 @@ import { Minimap } from "./ui/minimap.js";
 import { icon } from "./ui/icon.js";
 import { initSearch } from "./app/search.js";
 import { createCommuneCard } from "./ui/communeCard.js";
+import { createTapCard } from "./ui/tapCard.js";
+import { initMobile } from "./ui/mobile.js";
 import { createEmitter, createHashState, createModes, createUi, createMapToggles } from "./app/api.js";
 import { drawHighlight, drawOverlays, invalidateHighlight, highlightBounds } from "./render/overlays.js";
 import { resourceFilterSig, layerActive, layerError, Z as LAYER_Z } from "./render/map.js";
@@ -115,6 +117,16 @@ async function main() {
   // The lens part of the render cache keys: its id, and the year of a timeline lens.
   const lensKey = () => (state.lens ? `${state.lens.id}${state.lens.frames ? ":" + state.lens.frames.frame : ""}` : "terrain");
   const perf = { static: [], frame: [], warm: [] }; // ms per static render / frame / idle warm-up strip
+
+  let topbarH = TOPBAR_H; // the top bar's height (phones stack it in two rows), measured in resize()
+  // What a mouse would see by hovering, for a finger (showTapCard below); the tapped hex stays outlined meanwhile.
+  const tapCard = createTapCard({
+    onHide: () => {
+      if (state.hoverCell < 0) return;
+      state.hoverCell = -1;
+      requestDraw();
+    },
+  });
 
   const minimap = new Minimap(document.getElementById("minimap"), w, cam, (x, y) => {
     userMoved = true;
@@ -486,6 +498,7 @@ async function main() {
 
   function resize() {
     dpr = window.devicePixelRatio || 1;
+    topbarH = document.getElementById("topbar")?.offsetHeight || TOPBAR_H;
     const cw = Math.max(1, innerWidth), ch = Math.max(1, innerHeight);
     for (const c of new Set([canvas, drawCv])) {
       c.width = Math.round(cw * dpr);
@@ -503,6 +516,7 @@ async function main() {
     userMoved = true;
     dockFramed = false;
     hideTooltip();
+    tapCard.hide();
     url.schedule();
   }
 
@@ -559,11 +573,11 @@ async function main() {
     const d = docks === true ? dockState() : docks || NO_DOCKS;
     if (isMobile()) {
       const sheet = panelOpen || d.open;
-      return { x0: 0, y0: TOPBAR_H, x1: cam.w, y1: sheet ? cam.h * 0.45 : cam.h - 56 };
+      return { x0: 0, y0: topbarH, x1: cam.w, y1: sheet ? cam.h * 0.45 : cam.h - 56 };
     }
     const dl = d.l, dr = d.r;
     const x1 = cam.w - dr - (panelOpen && cam.w > 760 ? PANEL_W : 0);
-    return { x0: Math.min(dl, x1 - 100), y0: TOPBAR_H, x1, y1: cam.h };
+    return { x0: Math.min(dl, x1 - 100), y0: topbarH, x1, y1: cam.h };
   }
 
   // Fly so that world point (x, y) lands in the middle of the visible area at scale s.
@@ -668,8 +682,24 @@ async function main() {
     requestAnimationFrame(() => { minimapQueued = false; minimap.rebuild(); });
   };
 
+  // A lens's hex values sit in lenses/<id>.json (lens.file) until the lens is first needed (build/lenses.py).
+  function lensValues(lens) {
+    if (!lens) return Promise.resolve(null);
+    if (lens.values || !lens.file) return Promise.resolve(lens.values || null);
+    return loadData(lens.file).then((d) => {
+      lens.values ??= Array.isArray(d?.values) ? d.values : new Array(w.raw.owner.length).fill(null);
+      return lens.values;
+    });
+  }
+  let wantedLens = null; // the lens asked for last, while its values are on their way
   function setLens(lens) {
+    wantedLens = lens;
+    if (lens && !lens.values && lens.file) {
+      lensValues(lens).then(() => { if (wantedLens === lens) setLens(lens); });
+      return;
+    }
     const changed = lens !== state.lens;
+    tapCard.hide();
     state.lens = lens;
     state.band = null;
     applyLens(w, lens, null);
@@ -749,6 +779,7 @@ async function main() {
   let lastSelSig = "";
   function afterSelect() {
     hideTooltip();
+    tapCard.hide();
     describeCanvas();
     requestDraw();
     url.schedule();
@@ -884,6 +915,7 @@ async function main() {
       communeByCode(String(v)).then((c) => { if (c) showCommune(c, { fly: !new URLSearchParams(location.hash.slice(1)).get("at") }); });
     },
   });
+  initMobile({ app });
   const search = initSearch({
     cities,
     states: w.raw.states.map((s, i) => ({ name: states?.[i]?.name || s.name, abbr: s.abbr, population: states?.[i]?.population,
@@ -1138,10 +1170,24 @@ async function main() {
     }
   }
   const pointers = new Map(); // pointerId -> {x, y}
-  let drag = null; // {moved}
+  let drag = null; // {moved, x0, y0, panning, catches}
   let pinch = null; // {dist, cx, cy}
   let lastTap = null; // {t, x, y}
   let pendingTap = 0;
+
+  // The finger's recent positions while it drags, to measure the flick that lets the map glide on (from earthciv).
+  const TOUCH_SLOP = 10;
+  const FLICK_MS = 100;
+  let flick = []; // [t ms, x, y]
+  function flickVelocity(t) {
+    const last = flick.at(-1);
+    if (!last || t - last[0] > 60) return null; // a finger that stopped before lifting does not fling
+    let first = flick.find((f) => last[0] - f[0] <= FLICK_MS);
+    if (first === last && flick.length > 1) first = flick.at(-2);
+    const dt = (last[0] - first[0]) / 1000;
+    if (!(dt >= 0.008 && dt <= 0.2)) return null;
+    return { vx: (last[1] - first[1]) / dt, vy: (last[2] - first[2]) / dt };
+  }
 
   function hover(mx, my) {
     const city = hitCity(mx, my);
@@ -1166,13 +1212,46 @@ async function main() {
     if (events.has("hover")) emitHover(cell, city || w.cityByCell.get(cell) || null, hitResource(mx, my), mx, my, lh);
   }
 
+  // A tap on a touch screen: the hover tooltip's content for that point, in the tap card, with a button to open the
+  // city or the region (unless it is open already).
+  function showTapCard(mx, my, cell, lh, city, owner) {
+    let tip = null;
+    if (lh && typeof lh.layer.tooltip === "function") {
+      try {
+        tip = lh.layer.tooltip(lh.item);
+      } catch (err) {
+        layerError(lh.layer, "tooltip", err);
+      }
+    }
+    if (tip != null && tip !== "") showHtmlTooltip(mx, my, tip);
+    else if (cell >= 0) showCellTooltip(mx, my, w, cell, state.lens, state.showResources);
+    else return tapCard.hide();
+    const html = document.getElementById("tooltip").innerHTML;
+    hideTooltip();
+    state.hoverCell = cell;
+    requestDraw();
+    const name = (n) => `Open ${n}`;
+    const open = city ? { label: name(city.name), run: () => selectCity(city) }
+      : owner >= 0 && owner !== state.selectedState ? { label: name(stateName(owner)), run: () => selectState(owner, { fly: isMobile() }) }
+        : null;
+    tapCard.show(html, { open, key: state.lens && !tip ? `${state.lens.name}` : null });
+  }
+  events.on("mode", () => tapCard.hide());
+
   canvas.addEventListener("pointerdown", (e) => {
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic events */ }
+    // A tap that catches the map while it still visibly glides only stops it; in the slow tail it is a tap.
+    const gliding = !!cam.glide && Math.hypot(cam.glide.vx, cam.glide.vy) > 150;
     cam.stop();
-    if (pointers.size === 1) drag = { moved: 0 };
-    else if (pointers.size === 2) {
-      drag = { moved: 99 }; // a two-finger gesture is never a tap
+    // Touching the map ends a search in progress (phones show the search field over the top bar while it has focus).
+    if (document.activeElement?.id === "search-input") document.activeElement.blur();
+    if (pointers.size === 1) {
+      drag = { moved: 0, x0: e.clientX, y0: e.clientY, panning: false, catches: gliding };
+      flick = [];
+    } else if (pointers.size === 2) {
+      drag = { moved: 99, panning: true }; // a two-finger gesture is never a tap
+      flick = [];
       const [a, b] = [...pointers.values()];
       pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
       hideTooltip();
@@ -1184,7 +1263,7 @@ async function main() {
       if (e.pointerType === "mouse") hover(e.clientX, e.clientY);
       return;
     }
-    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    let dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX;
     p.y = e.clientY;
     if (pinch && pointers.size >= 2) {
@@ -1201,21 +1280,44 @@ async function main() {
     }
     if (drag) {
       drag.moved += Math.abs(dx) + Math.abs(dy);
-      if (drag.moved > 4) {
+      if (!drag.panning) {
+        const touch = e.pointerType !== "mouse";
+        if (touch ? Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) <= TOUCH_SLOP : drag.moved <= 4) return;
+        drag.panning = true;
         canvas.classList.add("dragging");
-        cam.panBy(dx, dy);
-        moved();
-        requestDraw();
+        // A finger that just left the slop circle takes the map along from where it went down.
+        if (touch && drag.x0 != null) {
+          dx = e.clientX - drag.x0;
+          dy = e.clientY - drag.y0;
+        }
       }
+      cam.panBy(dx, dy);
+      if (e.pointerType !== "mouse" && pointers.size === 1) {
+        // The browser may have merged several finger positions into this event: their own times give a truer speed.
+        const all = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [];
+        for (const c of all.length ? all : [e]) flick.push([c.timeStamp, c.clientX, c.clientY]);
+        while (flick.length > 2 && e.timeStamp - flick[0][0] > FLICK_MS * 2) flick.shift();
+      }
+      moved();
+      requestDraw();
     }
   });
   canvas.addEventListener("pointerup", (e) => {
     pointers.delete(e.pointerId);
-    if (pointers.size < 2) pinch = null;
+    if (pointers.size < 2 && pinch) {
+      pinch = null;
+      flick = []; // the finger left on the screen starts a fresh drag
+    }
     if (gestureZoom && pointers.size < 2) { gestureZoom = false; requestDraw(); } // render the settled zoom
     if (pointers.size > 0) return;
     canvas.classList.remove("dragging");
-    const wasTap = drag && drag.moved <= 4;
+    const wasTap = drag && !drag.panning && !drag.catches;
+    // A touch drag released while still moving lets the map glide on.
+    if (drag?.panning && e.pointerType !== "mouse") {
+      const v = flickVelocity(e.timeStamp);
+      if (v && cam.glideFrom(v.vx, v.vy)) requestDraw();
+    }
+    flick = [];
     drag = null;
     if (!wasTap) return;
     const mx = e.clientX, my = e.clientY;
@@ -1258,6 +1360,15 @@ async function main() {
       if (!modes.mode && layerClick()) return;
       if (events.emit("mapclick", ev)) return;
       if (modes.mode && layerClick()) return;
+      // Touch screens have no hover: a tap shows what the hover tooltip would, in a card (ui/tapCard.js). With a lens
+      // on, tapping land reads it (a city's banner still opens the city). Otherwise the first tap on a region opens
+      // it as before, and later taps inside it show what is there, as does a tap on a site off the land.
+      if (e.pointerType !== "mouse" && !banner && (state.lens ? owner >= 0 || resource || lh
+        : !city && ((owner >= 0 && owner === state.selectedState) || (owner < 0 && (resource || lh))))) {
+        showTapCard(mx, my, cell, lh, city, owner);
+        return;
+      }
+      tapCard.hide();
       if (city) selectCity(city);
       else if (owner >= 0) {
         // On phones the bottom sheet would hide the state, so bring it into the visible part of the map.
@@ -1272,6 +1383,7 @@ async function main() {
     pinch = null;
     if (gestureZoom) { gestureZoom = false; requestDraw(); }
     drag = null;
+    flick = [];
     canvas.classList.remove("dragging");
   });
   canvas.addEventListener("pointerleave", () => {
@@ -1396,6 +1508,8 @@ async function main() {
     loadData,
     loadCounties: () => loadData("counties"),
     w, cam, state, cityById, lensById,
+    // a lens's hex values (by id or object), loading them if needed: Promise<values | null>
+    lensValues: (ref) => lensValues(typeof ref === "string" ? lensById.get(ref) : ref),
     // drawing
     requestDraw,
     invalidate() { cache.key = null; invalidateHighlight(); requestDraw(); },
@@ -1491,7 +1605,12 @@ async function main() {
   // Small optional map-layer files load once the first frame is on screen (extensions can await app.loadData).
   // (A timer backs up the frame callback, which never fires while the page is in a background tab.)
   let eagerKicked = false;
-  const kickEager = () => { if (!eagerKicked) { eagerKicked = true; EAGER_DATA.forEach((n) => loadData(n)); } };
+  const kickEager = () => {
+    if (eagerKicked) return;
+    eagerKicked = true;
+    EAGER_DATA.forEach((n) => loadData(n));
+    lensValues(lensById.get("density")); // the City View counts residents per hex with it
+  };
   requestAnimationFrame(() => setTimeout(kickEager, 0));
   setTimeout(kickEager, 400);
   // Extensions load after the first frame is on its way; a missing extension folder is fine.

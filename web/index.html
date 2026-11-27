@@ -36,9 +36,12 @@
       <input id="search-input" type="search" placeholder="Search places, cities &amp; countries" autocomplete="off" spellcheck="false"
         role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" aria-label="Search places, cities and countries (/ or Ctrl K)">
       <kbd class="search-kbd" aria-hidden="true">/</kbd>
+      <button type="button" class="icon-btn search-close" aria-label="Close search"></button>
     </div>
     <div id="turn" class="turn"></div>
-    <div class="tb-buttons">
+    <button id="btn-menu" class="btn btn-icon tb-menu-btn" type="button" aria-label="Menu: Advisors, Rankings, Daily challenge, Share, Help, Almanac"
+      aria-haspopup="true" aria-expanded="false" aria-controls="tb-buttons"></button>
+    <div class="tb-buttons" id="tb-buttons">
       <button id="btn-share" class="btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Share this view" title="Share: copy a link or download an image"></button>
       <button id="btn-help" class="btn btn-icon" aria-label="Keyboard and mouse help" title="Help (?)"></button>
       <button id="btn-pedia" class="btn" aria-label="Open the Almanac" title="What every number means and where it comes from"></button>

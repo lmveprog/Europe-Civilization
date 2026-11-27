@@ -27,6 +27,24 @@ PRODUCES = ["states.json"]
 MIN_LABEL_KM, MAX_LABEL_KM = 14.0, 240.0  # suggested font height range, map units
 
 
+def national_extras(s: Stats, code: str) -> dict:
+    """The country's share born abroad (2021 census), tourist nights per resident and R&D spending (share of GDP),
+    from the same Eurostat tables as the lenses; null where Eurostat has no national figure."""
+    series = s.t["born3"]["series"] if "born3" in s.t else {}
+    born = next((v for k, v in series.items() if k.startswith("FOR|")), {})
+    total = next((v for k, v in series.items() if k.startswith("TOTAL|")), {})
+    f, t = born.get(code, {}).get("2021"), total.get(code, {}).get("2021")
+    y, nights = s.latest("tourism3", "I551-I553", code) if "tourism3" in s.t else (None, None)
+    pop = s.at("pop0", "TOTAL", code, str(y)) if y else None
+    rd = s.latest("rd2", "TOTAL", code)[1] if "rd2" in s.t else None
+    return {
+        "born_abroad": round(f / t, 4) if f is not None and t else None,
+        "tourist_nights": round(nights / pop, 2) if nights is not None and pop else None,
+        "tourist_year": y if nights is not None and pop else None,
+        "rd_gdp": round(rd / 100, 4) if rd is not None else None,
+    }
+
+
 def outline_areas(states: list[dict]) -> None:
     """Countries without local units (Bosnia and Herzegovina, Montenegro, Kosovo) have no summed LAU area: the area of
     their regions' GISCO outlines instead (equal-area projection), and the density that follows."""
@@ -255,6 +273,7 @@ def build() -> None:
             "pop_series": p["series"] or None,
             "land_km2": round(area[code]) if area.get(code) else None,
             "municipalities": units.get(code),
+            **national_extras(s, code),
             "density": round(econ["population"] / area[code], 1) if econ.get("population") and area.get(code) else None,
             # GDP per inhabitant in purchasing power standards (euros at EU-average prices): comparable across countries
             "gdp_pps_per_capita": s.latest("gdp3", "PPS_EU27_2020_HAB", code)[1],

@@ -27,6 +27,8 @@ const METRICS = [
   // Economy
   { id: "gdp_pps", d: "economy", label: "GDP per person", fmt: (v) => `${int(v)} PPS`, higher: true, v: (s) => s.gdp_pps_per_capita, note: "GDP per inhabitant in purchasing power standards (euros at EU-average prices), so price levels compare. Iceland, Bosnia and Herzegovina: national accounts; Switzerland: PPS volume index." },
   { id: "income", d: "economy", label: "Household income", fmt: (v) => `${int(v)} PPS`, higher: true, v: (s) => s.median_income, note: "Disposable household income per inhabitant, PPS (Eurostat, regional accounts). Iceland, Switzerland, Albania, Montenegro, North Macedonia, Serbia and Kosovo: estimated from the EU-SILC survey's mean income. United Kingdom: gross household income (ONS)." },
+  { id: "research", d: "economy", label: "Research spending", fmt: (v) => pct(v, 2), higher: true, v: (s) => s.rd_gdp, note: "Research and development spending of all sectors, share of GDP, latest year (Eurostat)." },
+  { id: "tourism", d: "economy", label: "Tourism", fmt: (v) => `${dec(v, 1)} nights`, higher: null, v: (s) => s.tourist_nights, note: "Nights spent in hotels, holiday homes and campsites per resident, latest year (Eurostat)." },
   { id: "employment", d: "economy", label: "Employment rate", fmt: (v) => pct(v, 1), higher: true, v: (s) => s.employment_rate, note: "Share of 20-64 year-olds in work (labour force survey)." },
   { id: "unemployment", d: "economy", label: "Unemployment", fmt: (v) => pct(v, 1), higher: false, v: (s) => s.unemployment, note: "Unemployment rate, ages 15-74 (labour force survey). Lowest first." },
   { id: "science_share", d: "economy", label: "Knowledge jobs", fmt: (v) => pct(v, 1), higher: true, v: (s) => (fin(s.yields?.science) && s.workplace_jobs ? s.yields.science / s.workplace_jobs : null), note: "Science-yield jobs as a share of all jobs." },
@@ -34,6 +36,7 @@ const METRICS = [
   // People
   { id: "population", d: "people", label: "Population", fmt: int, higher: null, wb: "population", v: (s) => s.population, note: "Residents on 1 January (Eurostat)." },
   { id: "growth", d: "people", label: "Growth", fmt: signed, higher: null, wb: "growth", v: (s) => s.growth, note: "Population change over five years; a census revision beyond ±15% is left blank." },
+  { id: "born_abroad", d: "people", label: "Born abroad", fmt: (v) => pct(v, 1), higher: null, v: (s) => s.born_abroad, note: "Share of residents born in another country, 2021 census round (Eurostat)." },
   { id: "life", d: "people", label: "Life expectancy", fmt: (v) => `${dec(v, 1)} yrs`, higher: true, wb: "life_expectancy", v: (s) => s.life_expectancy, note: "Life expectancy at birth." },
   { id: "age", d: "people", label: "Median age", fmt: (v) => `${dec(v, 1)} yrs`, higher: null, v: (s) => s.median_age, note: "Half the population is older, half younger." },
   { id: "youth", d: "people", label: "Children", fmt: (v) => pct(v, 1), higher: null, wb: "youth", v: (s) => s.youth, note: "Share of residents under 15." },
@@ -77,6 +80,7 @@ const CITY_METRICS = [
   { id: "c_life", label: "Life expectancy", fmt: (v) => `${dec(v, 1)} yrs`, higher: true, v: (c) => c.life_expectancy, note: "Life expectancy at birth, NUTS 2 average." },
 ];
 const CITY_TOP = 50;
+const LENS_DEPS = ["forest_height"]; // measures that are means of a lens's hex values
 // A city figure built from regional tables Eurostat fills only for larger regions (cities.json `estimated`).
 const ESTIMATED_FROM = { c_gdp: "gdp3", c_gdppc: "gdp3", c_science: "emp3", c_production: "emp3", c_culture: "emp3" };
 const approx = (m, c) => !!ESTIMATED_FROM[m.id] && (c.estimated || []).includes(ESTIMATED_FROM[m.id]);
@@ -84,6 +88,7 @@ const approx = (m, c) => !!ESTIMATED_FROM[m.id] && (c.estimated || []).includes(
 // How the coloured map's legend writes each metric: [lens format, unit].
 const LENS_FMT = {
   gold: ["usd", "€"], production: ["float", "jobs"], science: ["float", "jobs"], culture: ["float", "jobs"], food: ["float", "jobs"],
+  born_abroad: ["pct", ""], research: ["pct", ""], tourism: ["float", "nights per resident"],
   gdp_pps: ["float", "PPS"], income: ["float", "PPS"], employment: ["pct", ""], unemployment: ["pct", ""],
   science_share: ["pct", ""], industry_share: ["pct", ""], population: ["float", "people"], growth: ["change", ""],
   life: ["years", ""], age: ["years", ""], youth: ["pct", ""], density: ["int", "people / km²"], municipalities: ["float", "municipalities"], cities: ["float", "cities"],
@@ -201,10 +206,12 @@ export function install(app) {
       dock.appendChild(root);
       wire(root);
       render();
-      // Wonders, airports and ports feed the heritage tab; they may still be on their way.
+      // Wonders, airports and ports feed the heritage tab, and some measures are lens means; they may still be on
+      // their way (a lens's values load the first time something needs them).
       for (const name of ["wonders", "infrastructure"]) {
         if (app.data[name] === undefined) app.loadData?.(name).then(() => { extra = null; if (app.mode === "rankings") render(); });
       }
+      Promise.all(LENS_DEPS.map((id) => app.lensValues?.(id))).then(() => { extra = null; if (app.mode === "rankings") render(); });
     },
     exit() {
       if (mapLens && app.state.lens === mapLens) app.setLens(prevLens);

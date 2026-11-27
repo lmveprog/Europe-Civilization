@@ -152,7 +152,8 @@ summary. Today citizens, districts, infrastructure, resources and wonders have o
 | cities.json | cities | 1.2 MB | at start, required |
 | nation.json | cities | 4 kB | at start, required |
 | states.json | states | 80 kB | at start (optional) |
-| lenses.json | lenses | 8.5 MB | at start (optional) |
+| lenses.json | lenses | 17 kB | at start (optional) |
+| lenses/<id>.json | lenses | 25 files, 8.9 MB in all | a lens's values, the first time it is shown |
 | resources.json | resources | 140 kB | at start (optional) |
 | sources.json | catalog | 120 kB | at start (optional) |
 | infrastructure.json | infrastructure | 390 kB | right after the first frame |
@@ -360,6 +361,11 @@ the server (`abbr`, `name`, `region`).
   site). It counts only the sites above each type's threshold, so it is **not** the country's installed capacity;
   `note` says so for the interface. `sites` = number of items per type. Null if resources.json was not built.
 
+Added fields, null where the source has no figure: `municipalities` (local administrative units, LAU 2021; the UK's
+wards; none for Bosnia and Herzegovina, Montenegro and Kosovo), `born_abroad` (share of residents born abroad, 2021
+census), `tourist_nights` (nights in tourist accommodation per resident, latest year, `tourist_year`), `rd_gdp` (R&D
+spending, share of GDP), and `worldbank` (the fields filled from the World Bank where Eurostat has none).
+
 ## nation.json
 
 Europe as a whole, and the definitions the interface needs. Read by the top bar, the yield report and the Almanac.
@@ -389,6 +395,11 @@ Europe as a whole, and the definitions the interface needs. Read by the top bar,
 
 Per-hex map overlays. Read by the lens dock and legend (`web/js/ui/lenses.js`, `world.js` `applyLens`) and the
 advisors.
+
+A lens's hex values (`values`, one per hex) are not in lenses.json itself but in `lenses/<id>.json`
+(`{"id": "<id>", "values": [...]}`), named by the lens's `file` ("lenses/<id>"): the browser loads lenses.json (a few
+tens of kB) at start and a lens's values the first time the lens is shown, or when a measure needs them
+(`app.lensValues(id)`). `pipeline check` reads them back onto the lens before checking it.
 
 ```jsonc
 {

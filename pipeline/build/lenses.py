@@ -131,6 +131,33 @@ REGION_LENSES = {
         "description": "Share of people aged 25-64 with tertiary education, ISCED levels 5-8 (Eurostat edat_lfse_04, "
                        "NUTS 2).",
     }),
+    "research": ("nuts2", {
+        "group": "knowledge", "name": "Research spending", "icon": "l-degree",
+        "unit": "research and development spending, share of GDP", "format": "pct", "scale": "linear",
+        "higher_is": "neutral",
+        "ramp": ["#0d1626", "#1c3256", "#2f5d8a", "#4f93b8", "#8fc8d6", "#e2f4f0"], "source": "eurostat",
+        "description": "Gross domestic expenditure on research and development, all sectors (business, government, "
+                       "universities, non-profits), as a share of the region's GDP, latest year published (Eurostat "
+                       "rd_e_gerdreg, NUTS 2; the country's figure where the region has none).",
+    }),
+    "born_abroad": ("nuts3", {
+        "group": "people", "name": "Born abroad", "icon": "l-foreign-born",
+        "unit": "share of residents born in another country", "format": "pct", "scale": "linear",
+        "higher_is": "neutral",
+        "ramp": ["#14121f", "#2e2a4a", "#4f4580", "#7a6aa8", "#b49ccc", "#ece0f2"], "source": "eurostat",
+        "description": "Share of the region's residents born in another country, 2021 census round (Eurostat "
+                       "cens_21cob_r3, NUTS 3). Born abroad is not the same as foreign: it counts citizens born "
+                       "abroad, and leaves out foreigners born in the country.",
+    }),
+    "tourism": ("nuts3", {
+        "group": "prosperity", "name": "Tourism", "icon": "l-amenities",
+        "unit": "nights in tourist accommodation per resident, a year", "format": "float", "scale": "log",
+        "higher_is": "neutral",
+        "ramp": ["#0f1a12", "#1f3d2b", "#2f6a46", "#5a9a5a", "#b6c96a", "#fbeea8"], "source": "eurostat",
+        "description": "Nights spent in hotels, holiday homes and campsites in the region in the latest year, per "
+                       "resident (Eurostat tour_occ_nin2, NUTS 3; the NUTS 2 region's figure where the NUTS 3 one is "
+                       "not published). Private rentals between people are not counted.",
+    }),
 }
 LAND_LENSES = {
     "forest": (["forest"], {
@@ -161,6 +188,9 @@ CLASS_LENSES = {
 # The United Kingdom's regional figures come from its own statistical offices (sources/uk_ons.py).
 UK_NOTE = " United Kingdom: ONS, NRS and NISRA figures for its ITL regions."
 UK_NOTES = {
+    "born_abroad": " The United Kingdom's censuses are not in Eurostat's table: blank.",
+    "tourism": " The United Kingdom no longer reports to Eurostat: blank.",
+    "research": " The United Kingdom no longer reports to Eurostat: blank.",
     "income": " United Kingdom: gross disposable household income per head (ONS), a little above the net measure.",
     "poverty": " The United Kingdom publishes no regional rate on this definition: blank.",
     "unemployment": " United Kingdom: Annual Population Survey, ages 16 and over.",
@@ -196,6 +226,28 @@ def build() -> None:
                 v = s.at("gdp3", "PPS_EU27_2020_HAB", geo, s.gdp_year, 2)
                 if v is not None:
                     return v
+            return None
+        if lid == "born_abroad":  # the census table's two series: born abroad (FOR) and everyone (TOTAL)
+            series = s.t["born3"]["series"]
+            born = next(v for k, v in series.items() if k.startswith("FOR|"))
+            total = next(v for k, v in series.items() if k.startswith("TOTAL|"))
+            for geo in (g, g[:4], g[:3], g[:2]):
+                f, t = born.get(geo, {}).get("2021"), total.get(geo, {}).get("2021")
+                if f is not None and t:
+                    return f / t
+            return None
+        if lid == "tourism":
+            for geo in (g, g[:4]):
+                y, n = s.latest("tourism3", "I551-I553", geo)
+                p = s.at("pop3", "TOTAL", geo, str(y)) if y else None
+                if n is not None and p:
+                    return n / p
+            return None
+        if lid == "research":
+            for geo in (g[:4], g[:3], g[:2]):
+                v = s.latest("rd2", "TOTAL", geo)[1]
+                if v is not None:
+                    return v / 100
             return None
         table, code, scale = {
             "income": ("income2", "PPS_EU27_2020_HAB", 1), "poverty": ("arope2", "PC", 100),
@@ -290,10 +342,10 @@ def build() -> None:
     lenses += deep_history_lens(world, grid, proj, land_km2, lenses[0]["domain"])
     lenses += climate_lenses(world, grid)
     lenses += forest_height_lens(world, grid)
-    write_web("lenses.json", {"vintage": f"Eurostat {s.pop_year}, GISCO LAU 2021, land cover 2018", "groups": GROUPS,
-                              "lenses": lenses})
-    save_region_values(world, region_cache)
     cover = {l["id"]: sum(1 for v in l["values"] if v is not None) for l in lenses}
+    write_lenses({"vintage": f"Eurostat {s.pop_year}, GISCO LAU 2021, land cover 2018", "groups": GROUPS,
+                  "lenses": lenses})
+    save_region_values(world, region_cache)
     print(f"    {len(lenses)} lenses; hexes with a value: {cover}")
 
 
@@ -603,3 +655,19 @@ def climate_lenses(world: dict, grid: HexGrid) -> list[dict]:
         l["domain"] = percentile_domain(l["values"], l["scale"] == "log")
         l["description"] += DOMAIN_NOTE
     return lenses
+
+
+def write_lenses(doc: dict) -> None:
+    """lenses.json with each lens's description only, and its hex values in lenses/<id>.json (`file`), which the browser
+    loads the first time the lens is shown: the map starts without waiting for every lens."""
+    from ..core.paths import WEB_DATA
+
+    keep = set()
+    for lens in doc["lenses"]:
+        write_web(f"lenses/{lens['id']}.json", {"id": lens["id"], "values": lens.pop("values")})
+        lens["file"] = f"lenses/{lens['id']}"
+        keep.add(f"{lens['id']}.json")
+    for old in (WEB_DATA / "lenses").glob("*.json"):
+        if old.name not in keep:
+            old.unlink()
+    write_web("lenses.json", doc)

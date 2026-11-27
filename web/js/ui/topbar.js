@@ -19,12 +19,12 @@ export function renderTopbar(nation) {
   const check = () => el.classList.toggle("clipped", el.scrollWidth > el.clientWidth + 1);
   if (typeof ResizeObserver === "function") new ResizeObserver(check).observe(el);
   check();
-  watchBarOverflow(document.getElementById("topbar"));
+  watchBarOverflow(el);
   document.getElementById("turn").innerHTML = `Turn <b>${esc(nation.year ?? "")}</b> · ${esc(nation.vintage || "")}`;
 }
 
-// Phones scroll the whole bar sideways. Mark which ends have more to show (.more-l / .more-r) so CSS can fade
-// them: without a cue the yields look cut off after the second or third value.
+// Phones give the yields a row of their own that scrolls sideways. Mark which ends have more to show (.more-l /
+// .more-r) so CSS can fade them: without a cue the yields look cut off after the second or third value.
 function watchBarOverflow(bar) {
   if (!bar || bar.dataset.overflowWatch) return;
   bar.dataset.overflowWatch = "1";
