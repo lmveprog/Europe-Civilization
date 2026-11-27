@@ -15,7 +15,7 @@ from ..core.hexgrid import HexGrid
 from ..core.names import belgian_local
 from ..core.store import load_interim, save_interim
 
-REQUIRES = ["_world", "gisco", "geonames"]
+REQUIRES = ["_world", "gisco", "geonames", "hagstofa"]
 PRODUCES = ["_places"]
 
 HEX_KM2 = None  # set from the grid
@@ -42,6 +42,27 @@ def nearest_own_cell(grid: HexGrid, owner: list, cell: int, state: int, max_ring
     return -1
 
 
+def iceland_units(rows: list[dict]) -> None:
+    """GISCO's LAU 2021 has no population for Iceland: Statistics Iceland's figures for today's municipalities, a merged
+    one on its largest former unit (sources/hagstofa.py)."""
+    try:
+        h = load_interim("hagstofa")
+    except FileNotFoundError:
+        print("    hagstofa not processed: Iceland's municipalities stay without population")
+        return
+    now, moved = h["municipalities"], h["lau_to_now"]
+    n = 0
+    for r in rows:
+        if r["country"] != "IS" or r["pop"]:
+            continue
+        code = r["id"].split("_", 1)[1]
+        target = moved.get(code, code)
+        if target in now:
+            r["pop"] = now[target]
+            n += 1
+    print(f"    Iceland: {n} municipalities given Statistics Iceland's {h['year']} population")
+
+
 def build() -> None:
     world = load_interim("_world")
     gisco = load_interim("gisco")
@@ -64,6 +85,7 @@ def build() -> None:
     cols = gisco["lau"]["columns"]
     rows = [dict(zip(cols, r)) for r in gisco["lau"]["rows"]]
     lau_countries = {r["country"] for r in rows}
+    iceland_units(rows)
     # Countries without local units (Bosnia and Herzegovina, Montenegro, Kosovo): every GeoNames settlement.
     for p in geonames["settlements"]:
         if p["country"] in lau_countries:
@@ -99,10 +121,12 @@ def build() -> None:
         if not pop:
             continue
         area = r["area"] or 0
-        if area <= hex_km2:
+        ins = proj.frame_of(x, y)
+        k = ins.d["k"] if ins is not None else 1.0  # an inset drawn at scale k: a hex covers 1/k² of the ground
+        if area <= hex_km2 / k ** 2:
             hexpop[cell] += pop
             continue
-        rad = math.sqrt(area / math.pi) * SCALE  # equal-area radius, map units
+        rad = math.sqrt(area / math.pi) * SCALE * k  # equal-area radius, map units
         cx, cy = grid.center(*grid.col_row(cell))
         cells = []
         c0, r0 = grid.col_row(cell)

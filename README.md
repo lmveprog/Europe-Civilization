@@ -27,15 +27,21 @@ data pipeline is rebuilt for Europe. This is a first version and it is actively 
   districts (its real industrial specialisation) and its citizens (age, education, origins, commuting).
 - **Rank the countries.** The Rankings screen orders the 38 countries in 35 measures across seven domains (yields,
   economy, people, society, land, energy, heritage) and 734 cities in 11 more, and can colour the map by any of them.
-- **Switch lenses.** 23 map overlays: density, growth, median age, life expectancy, GDP per person, household income,
+- **Switch lenses.** 24 map overlays: density, growth, median age, life expectancy, GDP per person, household income,
   poverty, unemployment, university degrees, forest, farmland, vineyards, olive groves, temperature, warming,
   rainfall and more, including forest height from spaceborne LiDAR (ETH Zurich's canopy height map, learned from
   NASA's GEDI measurements).
+- **Watch fifty years go by.** The "Density since 1975" lens has a year slider and a Play button: the population
+  every five years from 1975 to 2020 (the European Commission's Global Human Settlement Layer), on one colour scale.
+  Madrid's region grows by about 70% while inland Spain, the Alentejo, eastern Germany, the Baltics and Bulgaria
+  lose people.
 - **Read the council of advisors.** Economy, prosperity, energy, people, knowledge, culture and land dashboards, and an
   explorer that charts any column of the countries, cities and 1,447 regions.
 - **Read every name.** The 98,000 local administrative units (communes, Gemeinden, comuni…), the UK's 8,500 wards and
   the 28,000 towns and villages of Bosnia and Herzegovina, Montenegro and Kosovo are named on the map as you zoom in,
   from the largest towns down to the smallest village. Search finds any of them, by local name too.
+- **Find yourself.** The crosshair beside the search box asks your browser for your position, which stays on your
+  device, and opens the card of the municipality you are in.
 - **Play the daily challenge.** Five places a day, the same for everyone, thirty seconds each: click where you think
   they are. Rankings by player, city, country and part of Europe.
 
@@ -86,7 +92,9 @@ area; rates published only for NUTS 2 regions (unemployment, income, poverty, de
 Where Eurostat leaves a region blank, the figure is filled from the larger region that has it and flagged as an
 estimate. Countries outside the EU's regional accounts get national estimates: GDP per person from the national
 accounts (or, for Switzerland, the PPS volume index), household income from the EU-SILC survey's mean income scaled to
-the regional-accounts measure.
+the regional-accounts measure. Bosnia and Herzegovina's population and age structure and Kosovo's age structure, which
+Eurostat does not publish, come from the World Bank; the population of Iceland's municipalities, missing from the LAU
+file, from Statistics Iceland.
 
 | Part | Where |
 |---|---|
@@ -114,6 +122,9 @@ the regional-accounts measure.
 | World Heritage sites | UNESCO open data | CC BY-SA 4.0 |
 | Airports | Eurostat passenger statistics, OurAirports | CC BY 4.0, public domain |
 | Towns and place names | GeoNames | CC BY 4.0 |
+| Population every five years, 1975-2020 | GHS-POP R2023A, Global Human Settlement Layer (European Commission, JRC) | CC BY 4.0 |
+| Population of Iceland's municipalities | Statistics Iceland | CC BY 4.0 |
+| Population and age of Bosnia and Herzegovina and Kosovo | World Bank, World Development Indicators | CC BY 4.0 |
 | United Kingdom: ITL regions, wards and census population, regional accounts, jobs, labour force, life expectancy | ONS, National Records of Scotland, NISRA | Open Government Licence v3.0 |
 | United Kingdom: airports, ports | Civil Aviation Authority, Department for Transport | Open Government Licence v3.0 |
 

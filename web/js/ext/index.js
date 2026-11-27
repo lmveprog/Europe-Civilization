@@ -6,7 +6,8 @@
 // rankings/: the countries ranked in every domain (Civ's Demographics screen).
 // places/: every municipality and town named on the map as you zoom in.
 // challenge/: the daily challenge (place five municipalities on the map).
-const MODULES = ["./cityView/index.js", "./advisors/index.js", "./rankings/index.js", "./layers/index.js", "./places/index.js", "./challenge/index.js"];
+// locate/: "Locate me", the place nearest the visitor's position (browser geolocation).
+const MODULES = ["./cityView/index.js", "./advisors/index.js", "./rankings/index.js", "./layers/index.js", "./places/index.js", "./locate/index.js", "./challenge/index.js"];
 
 export async function installExtensions(app, list = MODULES) {
   const loads = list.map((spec) => import(spec).then((m) => ({ m }), (err) => ({ err })));

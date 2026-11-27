@@ -32,19 +32,19 @@ const METRICS = [
   { id: "science_share", d: "economy", label: "Knowledge jobs", fmt: (v) => pct(v, 1), higher: true, v: (s) => (fin(s.yields?.science) && s.workplace_jobs ? s.yields.science / s.workplace_jobs : null), note: "Science-yield jobs as a share of all jobs." },
   { id: "industry_share", d: "economy", label: "Industrial jobs", fmt: (v) => pct(v, 1), higher: null, v: (s) => (fin(s.yields?.production) && s.workplace_jobs ? s.yields.production / s.workplace_jobs : null), note: "Industry and construction jobs as a share of all jobs." },
   // People
-  { id: "population", d: "people", label: "Population", fmt: int, higher: null, v: (s) => s.population, note: "Residents on 1 January (Eurostat)." },
-  { id: "growth", d: "people", label: "Growth", fmt: signed, higher: null, v: (s) => s.growth, note: "Population change over five years; a census revision beyond ±15% is left blank." },
-  { id: "life", d: "people", label: "Life expectancy", fmt: (v) => `${dec(v, 1)} yrs`, higher: true, v: (s) => s.life_expectancy, note: "Life expectancy at birth." },
+  { id: "population", d: "people", label: "Population", fmt: int, higher: null, wb: "population", v: (s) => s.population, note: "Residents on 1 January (Eurostat)." },
+  { id: "growth", d: "people", label: "Growth", fmt: signed, higher: null, wb: "growth", v: (s) => s.growth, note: "Population change over five years; a census revision beyond ±15% is left blank." },
+  { id: "life", d: "people", label: "Life expectancy", fmt: (v) => `${dec(v, 1)} yrs`, higher: true, wb: "life_expectancy", v: (s) => s.life_expectancy, note: "Life expectancy at birth." },
   { id: "age", d: "people", label: "Median age", fmt: (v) => `${dec(v, 1)} yrs`, higher: null, v: (s) => s.median_age, note: "Half the population is older, half younger." },
-  { id: "youth", d: "people", label: "Children", fmt: (v) => pct(v, 1), higher: null, v: (s) => s.youth, note: "Share of residents under 15." },
-  { id: "density", d: "people", label: "Density", fmt: (v) => `${int(v)} /km²`, higher: null, v: (s) => s.density, note: "People per km² of land." },
+  { id: "youth", d: "people", label: "Children", fmt: (v) => pct(v, 1), higher: null, wb: "youth", v: (s) => s.youth, note: "Share of residents under 15." },
+  { id: "density", d: "people", label: "Density", fmt: (v) => `${int(v)} /km²`, higher: null, wb: "density", v: (s) => s.density, note: "People per km² of land." },
   { id: "cities", d: "people", label: "Cities on the map", fmt: int, higher: null, v: (s, x) => x.cities.get(x.i) || 0, note: "Functional urban areas (or towns of 50,000+) drawn as cities." },
   // Society
   { id: "degrees", d: "society", label: "University degrees", fmt: (v) => pct(v, 1), higher: true, v: (s) => s.bachelors, note: "Share of 25-64 year-olds with tertiary education." },
   { id: "poverty", d: "society", label: "Poverty or exclusion", fmt: (v) => pct(v, 1), higher: false, v: (s) => s.poverty, note: "At risk of poverty or social exclusion (national poverty lines). Lowest first." },
-  { id: "seniors", d: "society", label: "Seniors", fmt: (v) => pct(v, 1), higher: null, v: (s) => s.seniors, note: "Share of residents aged 65 or over." },
+  { id: "seniors", d: "society", label: "Seniors", fmt: (v) => pct(v, 1), higher: null, wb: "seniors", v: (s) => s.seniors, note: "Share of residents aged 65 or over." },
   // Land
-  { id: "area", d: "land", label: "Area", fmt: (v) => `${int(v)} km²`, higher: null, v: (s) => s.land_km2, note: "Land area of the country's local units." },
+  { id: "area", d: "land", label: "Area", fmt: (v) => `${int(v)} km²`, higher: null, v: (s) => s.land_km2, note: "Land area of the country's local units. Bosnia and Herzegovina, Montenegro and Kosovo have none: the area of their regions' outlines." },
   { id: "forest", d: "land", label: "Forest", fmt: (v) => pct(v, 0), higher: null, v: (s) => share(s, "forest"), note: "Share of the land under forest (CORINE classes)." },
   { id: "farmland", d: "land", label: "Farmland", fmt: (v) => pct(v, 0), higher: null, v: (s) => (share(s, "crop") != null ? share(s, "crop") + (share(s, "pasture") || 0) : null), note: "Share of the land in crops, vineyards, orchards and pastures." },
   { id: "forest_height", d: "land", label: "Forest height", fmt: (v) => `${dec(v, 1)} m`, higher: null, v: (s, x) => x.forestHeight.get(x.i) ?? null, note: "Mean canopy height of the country's forested hexes (ETH Zurich's 2020 map, learned from NASA's GEDI spaceborne LiDAR)." },
@@ -276,7 +276,7 @@ export function install(app) {
       <div class="rk-metrics">${METRICS.filter((x) => x.d === m.d).map((x) => `<button type="button" data-metric="${x.id}" aria-pressed="${x.id === m.id}">${esc(x.label)}</button>`).join("")}</div>
       ${selIdx >= 0 ? placings(m.d, selIdx) : ""}
       <div class="rk-bar">
-        <p class="rk-note">${esc(m.note)}${missing > 0 ? ` <span class="muted">${missing} countr${missing === 1 ? "y has" : "ies have"} no figure.</span>` : ""}</p>
+        <p class="rk-note">${esc(m.note)}${wbNote(m)}${missing > 0 ? ` <span class="muted">${missing} countr${missing === 1 ? "y has" : "ies have"} no figure.</span>` : ""}</p>
         <button type="button" class="rk-colour${lensOn ? " on" : ""}" aria-pressed="${!!lensOn}">${lensOn ? "Map coloured" : "Colour the map"}</button>
       </div>
       <ol class="rk-table">${rs.map((r) => `
@@ -289,6 +289,13 @@ export function install(app) {
         </button></li>`).join("")}
       </ol>
       <p class="rk-foot muted">${states().length} countries: the EU, Iceland, Liechtenstein, Norway, Switzerland and the Western Balkans. Click a country to fly to it; the Almanac gives every source.</p>`;
+  }
+
+  // Countries whose figure for this metric comes from the World Bank (states.json `worldbank`: Eurostat has none).
+  function wbNote(m) {
+    if (!m.wb) return "";
+    const names = states().filter((st) => st.worldbank?.includes(m.wb)).map((st) => st.name);
+    return names.length ? ` ${names.join(", ")}: World Bank.` : "";
   }
 
   function scopeSwitch() {

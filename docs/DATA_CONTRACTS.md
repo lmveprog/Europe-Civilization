@@ -162,6 +162,8 @@ summary. Today citizens, districts, infrastructure, resources and wonders have o
 | placenames/top.json, placenames/t*.json | placenames | 1.0 MB + 203 tiles of 2-160 kB | Places layer, when zoomed in |
 | citizens.json | citizens | 1.0 MB | on demand (City View) |
 | districts.json | districts | 0.9 MB | on demand (City View, banner badges, advisors) |
+| timeline.json | lenses | 3.7 MB | on demand (the "Density since 1975" lens's slider) |
+| projection.json | projection | 1 kB | on demand (Locate me) |
 | defi.json | challenge | 390 kB | never: read by `server/api.py` only |
 
 Optional site files (citizens, districts, infrastructure, wonders) share a header: `"version": 1`, `"vintage"` (a
@@ -522,6 +524,20 @@ map's Places layer reads the lighter `placenames/` files built from it (below).
   urban area whose outline holds the point, or null. `density`: people per km², integer (null for GeoNames towns).
   `region`: NUTS 3 code. `x`, `y`: the unit's point in map units (integers, 400 m), where the Places layer writes its
   name. Belgian units of Brussels and Wallonia carry their French name (GISCO publishes the Dutch one).
+
+## timeline.json (lazy)
+
+The frames of a timeline lens (`lens.frames` in lenses.json: `{"file": "timeline", "years": [...], "frame": k}`):
+`{"lens": "density_history", "years": [1975, 1980, …, 2020], "values": [[…], …]}`, one array of `n` hex values per
+year (people per km² of land, from GHS-POP; null off the map's countries). The lens itself carries the last year's
+values; the legend's slider loads this file and swaps in another year's array, on the same colour domain.
+
+## projection.json (lazy)
+
+How the browser turns a longitude and latitude into map units (`pipeline/build/projection.py`, read by
+`web/js/ext/locate`): `kind` "laea", `lon0`, `lat0`, `radius_km` (spherical), `min_x`, `max_y` (km of the
+projection at the map's top-left), `scale` (map units per km), `margin` (map units), and `insets`: each `{name, lon:
+[w, e], lat: [s, n], ox, oy, kx, ky}`, a point inside the window going to `ox + (lon − w)·kx`, `oy + (n − lat)·ky`.
 
 ## placenames/ (lazy)
 

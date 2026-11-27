@@ -188,7 +188,7 @@ export function initLensDock(opts) {
 
   // ---- legend ---------------------------------------------------------------------------------------------------
   function histogram(lens) {
-    if (histCache.has(lens.id)) return histCache.get(lens.id);
+    if (histCache.has(lens)) return histCache.get(lens); // by object: each year of a timeline lens has its own
     const counts = new Array(BINS).fill(0);
     const t = lensScale(lens);
     const owner = w.raw.owner;
@@ -202,7 +202,7 @@ export function initLensDock(opts) {
       n++;
     }
     const h = { counts, n, max: Math.max(1, ...counts) };
-    histCache.set(lens.id, h);
+    histCache.set(lens, h);
     return h;
   }
 
@@ -312,6 +312,7 @@ export function initLensDock(opts) {
       </div>
       <div class="ticks">${ticks}</div>
       ${l.unit ? `<div class="lg-unit">${esc(l.unit)}</div>` : ""}
+      ${l.frames ? timeRow(l) : ""}
       <div class="lg-meta">${hib}<span class="src">${l.unit ? esc(l.unit) + " · " : ""}${sourceLine(l)}</span></div>
       <div class="lg-hint" aria-live="polite">Hover or drag the scale to show only that range</div>`;
     legend.querySelector(".lg-close").onclick = () => opts.onPick(null);
@@ -322,6 +323,49 @@ export function initLensDock(opts) {
       renderLegend();
     };
     wireScale(legend.querySelector(".lg-scale"));
+    wireTime(l);
+    drawHist();
+  }
+
+  // ---- timeline lenses (lens.frames: {file, years, frame}): a year slider and a play button ----------------------
+  let playTimer = 0;
+  const stopPlay = () => {
+    clearInterval(playTimer);
+    playTimer = 0;
+    const b = legend.querySelector(".lg-play");
+    if (b) { b.textContent = "Play"; b.setAttribute("aria-pressed", "false"); }
+  };
+  function timeRow(l) {
+    const { years, frame } = l.frames;
+    const k = frame ?? years.length - 1;
+    return `<div class="lg-time">
+        <button class="lg-play" type="button" aria-pressed="false">Play</button>
+        <input class="lg-range" type="range" min="0" max="${years.length - 1}" step="1" value="${k}" aria-label="Year">
+        <span class="lg-year">${years[k]}</span></div>`;
+  }
+  function wireTime(l) {
+    if (!l.frames) return stopPlay();
+    const range = legend.querySelector(".lg-range"), play = legend.querySelector(".lg-play");
+    const last = l.frames.years.length - 1;
+    range.oninput = () => { stopPlay(); opts.onFrame?.(l.id, +range.value); };
+    play.onclick = () => {
+      if (playTimer) return stopPlay();
+      let k = +range.value >= last ? 0 : +range.value + 1;
+      opts.onFrame?.(l.id, k);
+      play.textContent = "Pause";
+      play.setAttribute("aria-pressed", "true");
+      playTimer = setInterval(() => {
+        if (k >= last) return stopPlay();
+        opts.onFrame?.(l.id, ++k);
+      }, 1100);
+    };
+  }
+  // Another year of the same timeline lens: keep the legend (and the slider being dragged), update its year and bars.
+  function showFrame(l) {
+    const range = legend.querySelector(".lg-range"), year = legend.querySelector(".lg-year");
+    const k = l.frames.frame;
+    if (range && +range.value !== k) range.value = String(k);
+    if (year) year.textContent = l.frames.years[k];
     drawHist();
   }
 
@@ -453,8 +497,11 @@ export function initLensDock(opts) {
   return {
     // Called by main whenever the lens changes (band is reset by main at the same time).
     render(lens, b = null) {
+      const sameTimeline = lens && active && lens !== active && lens.frames && active.frames && lens.id === active.id;
       active = lens;
       band = b;
+      if (sameTimeline) return showFrame(lens);
+      stopPlay();
       renderQuick();
       if (!picker.hidden) renderPicker();
       renderLegend();

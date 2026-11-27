@@ -12,12 +12,12 @@ from __future__ import annotations
 import math
 
 from ..core.hexgrid import HexGrid
-from ..core.geo import SCALE
+from ..core.geo import SCALE, MapProjection
 from ..core.store import load_interim, write_web
 from .yields import Stats
 
-REQUIRES = ["_world", "_places", "eurostat", "canopy_eth"]
-PRODUCES = ["lenses.json", "_region_values"]
+REQUIRES = ["_world", "_places", "eurostat", "canopy_eth", "ghsl_pop"]
+PRODUCES = ["lenses.json", "_region_values", "timeline.json"]
 
 GROUPS = [
     {"id": "people", "name": "People"},
@@ -209,14 +209,24 @@ def build() -> None:
         return None
 
     lenses = []
-    # Density: local units' population per hex ÷ the hex's land area (share of its 7 samples on land).
+    # Density: local units' population per hex ÷ the hex's land area (share of its 7 samples on land). A hex of an
+    # inset drawn at scale k covers 1/k² of a main-map hex's ground.
+    proj = MapProjection(**world["projection"])
+    hex_km2 = [hex_area] * grid.size
+    for i in range(grid.size):
+        if owner[i] >= 0:
+            ins = proj.frame_of(*grid.center(*grid.col_row(i)))
+            if ins is not None:
+                hex_km2[i] = hex_area / ins.d["k"] ** 2
+    land_km2 = [None] * grid.size
+    for i, smp in enumerate(samples):
+        if owner[i] >= 0:
+            land_km2[i] = hex_km2[i] * (sum(1 for x in smp if x >= 0) or 7) / 7
     hexpop = places["hexpop"]
     density = [None] * grid.size
-    for i, smp in enumerate(samples):
-        if owner[i] < 0:
-            continue
-        land = sum(1 for x in smp if x >= 0) or 7
-        density[i] = round(hexpop[i] / (hex_area * land / 7), 2)
+    for i in range(grid.size):
+        if land_km2[i]:
+            density[i] = round(hexpop[i] / land_km2[i], 2)
     lenses.append({
         "id": "density", "group": "people", "name": "Density", "icon": "l-people",
         "unit": "people / km²", "format": "int", "scale": "log",
@@ -226,7 +236,8 @@ def build() -> None:
                        "placed on the hex of its centre, or spread evenly over the hexes within its own radius when "
                        "it is larger than a hex. Bosnia and Herzegovina, Montenegro and Kosovo have no local units: "
                        "their towns and villages are counted with the population GeoNames records for them, often "
-                       "from an older census." + DOMAIN_NOTE,
+                       "from an older census. Iceland's municipalities, which GISCO lists without a population, "
+                       "take Statistics Iceland's latest figures." + DOMAIN_NOTE,
         "values": density, "domain": percentile_domain(density, True),
     })
 
@@ -275,6 +286,7 @@ def build() -> None:
                        "ramp": ["#141414", "#2b2622", colour, "#e8d9c8"], "description": desc + DOMAIN_NOTE,
                        "values": values, "domain": [0, dom[1]]})
 
+    lenses += density_history_lens(world, grid, proj, land_km2, lenses[0]["domain"])
     lenses += climate_lenses(world, grid)
     lenses += forest_height_lens(world, grid)
     write_web("lenses.json", {"vintage": f"Eurostat {s.pop_year}, GISCO LAU 2021, land cover 2018", "groups": GROUPS,
@@ -282,6 +294,71 @@ def build() -> None:
     save_region_values(world, region_cache)
     cover = {l["id"]: sum(1 for v in l["values"] if v is not None) for l in lenses}
     print(f"    {len(lenses)} lenses; hexes with a value: {cover}")
+
+
+def density_history_lens(world: dict, grid: HexGrid, proj, land_km2: list, domain) -> list[dict]:
+    """Density every five years since 1975 from GHS-POP (ghsl_pop): each 2 km block of the grid goes to the hex under
+    its centre (a coastal block in a sea hex to the nearest land hex); the hex's people ÷ its land area. The lens shows the last epoch; timeline.json holds every epoch, on
+    the density lens's colour scale. Empty if the source has not been processed."""
+    import zlib
+    from array import array
+
+    from ..core.paths import INTERIM
+    from ..sources.ghsl_pop import mollweide_inverse
+    from .world import FOREIGN
+
+    try:
+        g = load_interim("ghsl_pop")
+    except FileNotFoundError:
+        print("    ghsl_pop not processed: no density timeline")
+        return []
+    epochs = g["epochs"]
+    blob = (INTERIM / g["raster"]).read_bytes()
+    owner = world["owner"]
+    side, step = g["side"], g["block_m"]
+    people = {y: [0.0] * grid.size for y in epochs}
+    for t in g["tiles"]:
+        grids = {}
+        for y, (off, n) in t["epochs"].items():
+            a = array("f")
+            a.frombytes(zlib.decompress(blob[off:off + n]))
+            grids[int(y)] = a
+        for k in range(side * side):
+            if not any(a[k] > 0 for a in grids.values()):
+                continue
+            lon, lat = mollweide_inverse(t["x0"] + (k % side + 0.5) * step, t["y0"] - (k // side + 0.5) * step)
+            if not (-180 <= lon <= 180):
+                continue
+            x, y = proj(lon, lat)
+            c = grid.cell_at(x, y)
+            if c < 0 or owner[c] == FOREIGN:
+                continue
+            if owner[c] < 0:  # a coastal block whose centre is in a sea hex: the nearest land hex of a map country
+                near = [(math.dist((x, y), grid.center(*grid.col_row(j))), j) for j in grid.neighbours(c) if owner[j] >= 0]
+                if not near:
+                    continue
+                c = min(near)[1]
+            for yr, a in grids.items():
+                people[yr][c] += a[k]
+    frames = [[round(people[y][i] / land_km2[i], 2) if land_km2[i] else None for i in range(grid.size)]
+              for y in epochs]
+    totals = {y: round(sum(people[y])) for y in epochs}
+    print(f"    density timeline: people on the map's hexes by epoch {totals}")
+    write_web("timeline.json", {"lens": "density_history", "years": epochs, "values": frames})
+    return [{
+        "id": "density_history", "group": "people", "name": f"Density since {epochs[0]}", "icon": "l-people",
+        "unit": "people / km²", "format": "int", "scale": "log",
+        "ramp": ["#1b1035", "#4b2377", "#9a3b8a", "#e0645e", "#f9b24a", "#fff3a8"], "higher_is": "neutral",
+        "source": "ghsl_pop",
+        "description": f"People per km² of land every five years from {epochs[0]} to {epochs[-1]}: drag the slider or "
+        "press Play. From the European Commission's Global Human Settlement Layer (GHS-POP R2023A), which spreads "
+        "each country's census counts over the built-up areas that Landsat and Sentinel-2 saw at each date, on a "
+        "1 km grid. From 1975 to 2020 the Madrid region grows by about 70% and Ireland's east by two thirds, while "
+        "Castile and León, Extremadura and the Alentejo lose 10 to 15%, Saxony-Anhalt and Thuringia nearly a "
+        "quarter, Latvia a quarter and Bulgaria a fifth. Same colours for every year, those of the Density lens.",
+        "frames": {"file": "timeline", "years": epochs, "frame": len(epochs) - 1},
+        "values": frames[-1], "domain": domain,
+    }]
 
 
 def save_region_values(world, cache):

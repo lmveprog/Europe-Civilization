@@ -152,6 +152,18 @@
       app.selectCity(null); app.selectState(null);
     });
 
+    await step("locate me (simulated positions)", async () => {
+      const doc = win.document;
+      if (!doc.getElementById("btn-locate")) errors.push("no Locate me button");
+      for (const [lon, lat, name] of [[4.88, 45.77, "Villeurbanne"], [13.405, 52.52, "Berlin"], [-15.4134, 28.1235, "Palmas de Gran Canaria"], [-21.9426, 64.1466, "Reykjav"], [-0.1276, 51.5072, "St James"]]) {
+        await app.locate.at(lon, lat); await sleep(700);
+        const card = doc.querySelector(".commune-card");
+        if (!card || card.hidden || !card.textContent.includes(name)) errors.push(`position ${lon}, ${lat}: the card of ${name} does not open`);
+      }
+      await app.locate.at(-74.0, 40.7); await sleep(300); // New York: off the map, a message and nothing else
+      app.selectCity(null); app.selectState(null);
+    });
+
     await step("daily challenge: sign-up, ranked game, rankings", async () => {
       const doc = win.document;
       const clear = () => { try { ["europeciv-joueur", "europeciv-defi-partie"].forEach((k) => win.localStorage.removeItem(k)); } catch {} };

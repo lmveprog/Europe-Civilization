@@ -342,6 +342,11 @@ body.panel-open #lens-area { right: calc(394px + var(--dock-right, 0px)); }
 .legend .lg-unit { display: none; margin-top: 1px; color: var(--ink-dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lg-meta { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 5px; color: var(--ink-dim); font-size: 10.5px; }
 .hib { font-weight: 600; }
+.lg-time { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.lg-time .lg-range { flex: 1; min-width: 0; accent-color: var(--gold); }
+.lg-time .lg-year { font-family: var(--serif); font-size: 15px; color: var(--gold-bright); font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+.lg-play { font: inherit; font-size: 11px; cursor: pointer; padding: 2px 8px; border-radius: 4px; color: var(--gold-bright); background: rgba(0,0,0,.3); border: 1px solid var(--gold); }
+.lg-play[aria-pressed="true"] { background: rgba(201,164,92,.2); }
 .lg-hint { margin-top: 4px; font-size: 10.5px; color: rgba(185,171,136,.75); font-style: italic; }
 .lg-hint.on { color: var(--gold-bright); font-style: normal; }
 /* A lens's caveat (lens.note), e.g. what a religion count does and does not measure. Shown everywhere, even on phones. */
@@ -663,3 +668,10 @@ body.defi-round #search-input { opacity: .45; }
 .map-standin { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 .cp-pop.cp-pop2 { margin-top: 2px; color: var(--ink-dim); }
 .cp-pop.cp-pop2 b { font-size: 13px; color: var(--ink); }
+
+/* Locate me beside the search box (ext/locate): a crosshair that turns while the position is on its way. */
+.locate-btn { display: inline-grid; place-items: center; padding: 4px 6px; margin-left: -4px; }
+.locate-btn.busy .icon { animation: locate-turn 1s linear infinite; }
+@keyframes locate-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .locate-btn.busy .icon { animation: none; opacity: .5; } }
+@media (max-width: 700px) { .locate-btn { order: -1; margin-left: -6px; } }

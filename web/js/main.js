@@ -112,6 +112,8 @@ async function main() {
   let animTimer = 0;
   let lastCamSig = "";
   let lastUrlCamSig = "";
+  // The lens part of the render cache keys: its id, and the year of a timeline lens.
+  const lensKey = () => (state.lens ? `${state.lens.id}${state.lens.frames ? ":" + state.lens.frames.frame : ""}` : "terrain");
   const perf = { static: [], frame: [], warm: [] }; // ms per static render / frame / idle warm-up strip
 
   const minimap = new Minimap(document.getElementById("minimap"), w, cam, (x, y) => {
@@ -174,7 +176,7 @@ async function main() {
   const SELECT_ART_MIN_RPX = 14;
   const staticSelected = (s = cam.scale) => (w.grid.R * s >= SELECT_ART_MIN_RPX ? state.selectedCity : null);
   const cacheKey = () =>
-    `${state.lens?.id ?? "terrain"}|${state.band ? state.band.join(",") : ""}|${state.showResources ? 1 : 0}|${dpr}|${cam.w}x${cam.h}` +
+    `${lensKey()}|${state.band ? state.band.join(",") : ""}|${state.showResources ? 1 : 0}|${dpr}|${cam.w}x${cam.h}` +
     `|${staticSelected()?.id ?? ""}|${resourceFilterSig(state.resourceFilter)}|${layersSig()}`;
 
   // lead: [-1|0|1, -1|0|1], the direction a pan ran off the cache; the new cache reaches further that way (and less
@@ -214,7 +216,7 @@ async function main() {
   // does not reach (a zoom-out or a fast pan before the next render), so the screen shows the map, a little soft, and
   // never an empty edge. Selection and hover are left out: it only has to look right at a glance.
   const backdrop = { cv: document.createElement("canvas"), key: null, handle: 0 };
-  const backdropKey = () => `${state.lens?.id ?? "terrain"}|${state.band ? state.band.join(",") : ""}|${state.showResources ? 1 : 0}|${dpr}|${layersSig()}`;
+  const backdropKey = () => `${lensKey()}|${state.band ? state.band.join(",") : ""}|${state.showResources ? 1 : 0}|${dpr}|${layersSig()}`;
   function renderBackdrop() {
     backdrop.handle = 0;
     if (document.hidden || cam.moving) return scheduleBackdrop();
@@ -632,7 +634,24 @@ async function main() {
     lenses: lensFile, sources: sources || [], w,
     onPick: (lens) => setLens(lens),
     onBand: (band) => setBand(band),
+    onFrame: (id, k) => showLensFrame(id, k),
   });
+  // A year of a timeline lens (lens.frames): the lens with that year's values, from its lazily loaded file.
+  const frameLenses = new Map();
+  function showLensFrame(id, k) {
+    const base = lensById.get(id);
+    if (!base?.frames) return;
+    loadData(base.frames.file).then((d) => {
+      const values = d?.values?.[k];
+      if (!values || state.lens?.id !== id) return;
+      const key = `${id}:${k}`;
+      if (!frameLenses.has(key)) {
+        frameLenses.set(key, k === base.frames.years.length - 1 ? base
+          : { ...base, values, frames: { ...base.frames, frame: k } });
+      }
+      setLens(frameLenses.get(key));
+    });
+  }
 
   let minimapQueued = false;
   const rebuildMinimap = () => {

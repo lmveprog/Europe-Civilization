@@ -21,10 +21,78 @@ from ..core.paths import WEB_DATA
 from ..core.store import load_interim, write_web
 from .yields import YIELDS, Stats, economy, growth_of, nuts2_rates, region_profile
 
-REQUIRES = ["_world", "_places", "eurostat", "gisco", "resources.json"]
+REQUIRES = ["_world", "_places", "eurostat", "gisco", "worldbank", "resources.json"]
 PRODUCES = ["states.json"]
 
 MIN_LABEL_KM, MAX_LABEL_KM = 14.0, 240.0  # suggested font height range, map units
+
+
+def outline_areas(states: list[dict]) -> None:
+    """Countries without local units (Bosnia and Herzegovina, Montenegro, Kosovo) have no summed LAU area: the area of
+    their regions' GISCO outlines instead (equal-area projection), and the density that follows."""
+    from ..core.geo import Laea
+
+    laea = Laea()
+
+    def ring_km2(ring):
+        pts = [laea(lon, lat) for lon, lat in ring]
+        return abs(sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in zip(pts, pts[1:] + pts[:1]))) / 2
+
+    nuts = load_interim("gisco")["nuts"]
+    for st in states:
+        if st.get("land_km2") is not None:
+            continue
+        regs = [n for n in nuts if n["country"] == st["abbr"] and n.get("rings")]
+        if not regs:
+            continue
+        deepest = max(n["level"] for n in regs)
+        st["land_km2"] = round(sum(ring_km2(r) for n in regs if n["level"] == deepest for r in n["rings"]))
+        if st.get("population"):
+            st["density"] = round(st["population"] / st["land_km2"], 1)
+
+
+def world_bank_fill(states: list[dict]) -> None:
+    """National World Bank figures where Eurostat has none (Bosnia and Herzegovina's population and age structure,
+    land areas where there are no local units). Each country lists the fields filled this way in `worldbank`."""
+    try:
+        wb = load_interim("worldbank")["countries"]
+    except FileNotFoundError:
+        print("    worldbank not processed: Eurostat's blanks stay blank")
+        return
+
+    for st in states:
+        row = wb.get(st["abbr"]) or {}
+        filled = []
+
+        def latest(key):
+            ser = row.get(key) or {}
+            y = max(ser, key=int) if ser else None
+            return (int(y), ser[y]) if y else (None, None)
+
+        if st.get("population") is None and row.get("population"):
+            ser = row["population"]
+            y, v = latest("population")
+            st["population"] = round(v)
+            st["pop_series"] = {k: round(x) for k, x in ser.items() if int(k) >= 2014}
+            filled.append("population")
+            if st.get("growth") is None and str(y - 5) in ser:
+                g = v / ser[str(y - 5)] - 1
+                if abs(g) <= 0.15:
+                    st["growth"], st["growth_years"] = round(g, 4), [y - 5, y]
+                    filled.append("growth")
+            if st.get("gdp_per_capita") is None and st.get("gdp"):
+                st["gdp_per_capita"] = round(st["gdp"] / st["population"])
+        for key, field, scale, digits in (("life_expectancy", "life_expectancy", 1, 1), ("youth_pct", "youth", 0.01, 4),
+                                          ("seniors_pct", "seniors", 0.01, 4)):
+            if st.get(field) is None and row.get(key):
+                st[field] = round(latest(key)[1] * scale, digits)
+                filled.append(field)
+        if st.get("density") is None and st.get("population") and st.get("land_km2"):
+            st["density"] = round(st["population"] / st["land_km2"], 1)
+            filled.append("density")
+        if filled:
+            st["worldbank"] = filled
+    print(f"    World Bank fills: { {st['abbr']: st['worldbank'] for st in states if st.get('worldbank')} }")
 
 
 def label_anchor(grid: HexGrid, owner: list[int], s: int, name: str) -> dict | None:
@@ -191,6 +259,8 @@ def build() -> None:
             "land": land_shares(world, i),
             "energy": dict(energy.get(code) or energy[""]) if energy is not None else None,
         })
+    outline_areas(states)
+    world_bank_fill(states)
     for key in [y["key"] for y in YIELDS]:
         ranked = sorted((st for st in states if st["yields"][key] is not None), key=lambda st: -st["yields"][key])
         for r, st in enumerate(ranked, 1):
